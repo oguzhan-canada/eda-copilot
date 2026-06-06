@@ -388,6 +388,9 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
               <div class="range-labels"><span>1</span><span>10</span></div>
             </div>
             <button id="submitBtn" class="submit-btn" type="submit">Ask Copilot →</button>
+            <button id="resetBtn" type="button" style="display:none;width:100%;height:44px;margin-top:10px;background:transparent;border:1px solid var(--navy4);color:var(--dim);border-radius:8px;font-size:15px;cursor:pointer;" onmouseover="this.style.borderColor='var(--coral)';this.style.color='var(--coral)'" onmouseout="this.style.borderColor='var(--navy4)';this.style.color='var(--dim)'">
+  ↺ Reset — ask another question
+</button>
           </form>
           <div class="seed-label">Try a seed query:</div>
           <div class="seed-pills">
@@ -889,6 +892,9 @@ function prettifyCategory(value){
 
 function renderDefaultState(){
   document.getElementById('resultRoot').innerHTML = '<div class="placeholder">Your answer will appear here.</div>';
+  document.getElementById('resetBtn').style.display = 'none';
+  document.getElementById('queryInput').value = '';
+  document.getElementById('queryInput').focus();
 }
 
 function renderLoading(){
@@ -947,6 +953,7 @@ function renderResponse(data){
 }
 
 function renderStreaming(metadata) {
+  document.getElementById('resetBtn').style.display = 'block';
   const citations = Array.isArray(metadata.citations) ? metadata.citations : [];
   const citationItems = citations.map(item => {
     const fileName = truncateFile(String(item).split(/[\\/]/).pop());
@@ -1075,6 +1082,10 @@ function initLiveDemo(){
       document.getElementById('queryInput').value = btn.textContent.trim();
       await submitQuery(btn.textContent.trim());
     });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    renderDefaultState();
   });
 }
 
