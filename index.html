@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EDA Copilot — LLM-Powered Knowledge Graph for Electronic Design Automation</title>
+<meta name="description" content="A GraphRAG copilot for chip design engineers. Knowledge graph + vector retrieval + LoRA fine-tuning. Built for $240. 21.9× better than bare LLM on EDABench. By Oguzhan Tekin, Toronto.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --navy:#0b1929;
+  --navy2:#0f2235;
+  --navy3:#162d45;
+  --navy4:#1d3a57;
+  --teal:#02C39A;
+  --gold:#f0c040;
+  --coral:#F96167;
+  --blue:#2a88e0;
+  --white:#f0f6ff;
+  --dim:#6a8fad;
+  --border:rgba(2,195,154,0.15);
+}
+body.light {
+  --navy:#f0f4f8;
+  --navy2:#e2e8f0;
+  --navy3:#d1dce8;
+  --navy4:#b8c9d8;
+  --white:#0f2235;
+  --dim:#3a5a7a;
+  --border:rgba(2,195,154,0.25);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--navy);color:var(--white);font-family:'Calibri','Candara','Segoe UI',sans-serif;line-height:1.7}
+a{color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+h1{font-size:40px;line-height:1.18;margin-bottom:10px}
+h2{font-size:31px;margin-bottom:8px}
+h3{font-size:22px;color:var(--teal);margin-bottom:4px}
+h4{font-size:17px}
+p,.note,li{font-size:17px;color:var(--dim);line-height:1.7}
+.section{padding:42px 0 52px}
+#site-header{position:sticky;top:0;z-index:999;height:93px;background:var(--navy2);border-bottom:1px solid var(--border)}
+.header-inner{height:100%;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.header-left{display:flex;align-items:center;gap:10px;min-width:0}
+.header-brand{font-family:Consolas,'Courier New',monospace;font-size:31px;font-weight:700;color:var(--teal);white-space:nowrap}
+.header-pipe{color:var(--dim)}
+.header-sub{font-size:13px;color:var(--dim);white-space:nowrap}
+.header-center{flex:1}
+#header-right{display:flex;align-items:center;gap:10px}
+.hdr-dropdown{position:relative;display:inline-block}
+.hdr-dropdown-trigger{font-family:'Calibri','Candara','Segoe UI',sans-serif;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--dim);font-size:13px;cursor:pointer;transition:border-color .2s,color .2s;user-select:none}
+.hdr-dropdown-trigger:hover{border-color:var(--teal);color:var(--teal)}
+.hdr-dropdown.open .hdr-dropdown-trigger{border-color:var(--teal);color:var(--teal)}
+.hdr-dropdown-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:420px;max-height:72vh;overflow-y:auto;background:var(--navy2);border:1px solid var(--border);border-radius:12px;z-index:2000;box-shadow:0 12px 40px rgba(0,0,0,.55);padding:22px 24px;scrollbar-width:thin}
+.hdr-dropdown.open .hdr-dropdown-panel{display:block}
+.hdr-panel-title{font-size:15px;font-weight:700;color:var(--teal);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.hdr-panel-body p{font-size:14px;line-height:1.75;color:var(--white);margin-bottom:12px}
+.hdr-panel-body p:last-child{margin-bottom:0}
+.hdr-panel-link,.banner-link,.inline-link,.footer-links a,.progress-link{color:var(--teal);text-decoration:none}
+.hdr-panel-link:hover,.banner-link:hover,.inline-link:hover,.footer-links a:hover,.progress-link:hover{text-decoration:underline}
+#themeBtn{font-family:'Calibri','Candara','Segoe UI',sans-serif;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--dim);font-size:13px;cursor:pointer;transition:border-color .2s,color .2s}
+#themeBtn:hover{border-color:var(--teal);color:var(--teal)}
+#tabBar{position:sticky;top:93px;z-index:998;background:var(--navy);border-bottom:1px solid var(--border)}
+#tabBar .tab-row{display:flex;gap:6px;margin:0;padding:12px 0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+.tab-btn{padding:8px 18px;border-radius:20px;border:1px solid var(--navy4);background:var(--navy3);color:var(--dim);cursor:pointer;font-size:15px;font-family:inherit;white-space:nowrap;flex:0 0 auto}
+.tab-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.intro-quote{border-left:4px solid var(--teal);background:rgba(2,195,154,0.04);padding:24px 28px;border-radius:12px;font-size:18px;color:var(--white);line-height:1.8;margin-bottom:12px}
+.intro-quote p{font-size:18px;color:var(--white)}
+.attribution{font-size:14px;color:var(--dim);font-style:italic;margin-bottom:24px}
+.stat-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.stat-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;min-width:156px;text-align:center;flex:1 1 156px;max-width:170px}
+.stat-card .num{font-size:34px;font-weight:700;color:var(--teal)}
+.stat-card .lbl{font-size:14px;color:var(--dim);margin-top:2px}
+.footnote{font-style:italic;font-size:14px;color:var(--dim);text-align:center;margin-top:8px}
+.section-lead{text-align:center;margin-bottom:24px}
+.pipeline{display:flex;align-items:stretch;justify-content:center;gap:12px;flex-wrap:wrap;margin:22px 0}
+.pipe-node{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:16px;min-width:140px;text-align:center;flex:1 1 140px;max-width:160px}
+.pipe-icon{font-size:30px;margin-bottom:8px}
+.pipe-label{font-size:14px;font-weight:700;color:var(--white)}
+.pipe-sub{font-size:11px;color:var(--dim);margin-top:3px}
+.pipe-arrow{color:var(--teal);font-size:20px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.finding-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.finding-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:22px}
+.finding-kicker{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+.finding-metric{font-size:30px;font-weight:700;color:var(--white);margin-bottom:6px;line-height:1.15}
+.finding-card p{font-size:15px}
+.key-insight-banner{background:linear-gradient(135deg,rgba(2,195,154,.08),rgba(42,136,224,.08));border-top:1px solid var(--teal);border-bottom:1px solid var(--teal);padding:34px 0;margin-top:36px}
+.ki-inner{display:flex;align-items:flex-start;gap:24px;background:var(--navy2);border:1px solid var(--border);border-radius:16px;padding:28px 32px}
+.ki-icon{font-size:48px;flex-shrink:0}
+.ki-label{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);margin-bottom:6px}
+.ki-headline{font-size:26px;font-weight:700;color:var(--white);margin-bottom:10px;line-height:1.2}
+.ki-body{font-size:16px;color:var(--dim);line-height:1.7;margin-bottom:12px}
+.banner-link{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--teal);background:rgba(2,195,154,.08);font-size:14px}
+.success-note{border:1px solid var(--teal);border-radius:10px;padding:14px 18px;background:rgba(2,195,154,.06);font-size:15px;color:var(--teal)}
+.caveat{border:1px solid var(--coral);border-radius:10px;padding:14px 18px;background:rgba(249,97,103,.06);font-size:15px;color:var(--coral)}
+.explorer{display:flex;gap:28px;flex-wrap:wrap;margin-top:24px}
+.ctrl-panel{flex:1;min-width:280px;background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:24px}
+.result-panel{flex:1.3;min-width:320px}
+.panel-kicker,.seed-label,.inline-label{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+.query-box{width:100%;min-height:90px;resize:vertical;background:var(--navy3);border:1px solid var(--navy4);color:var(--white);border-radius:8px;padding:12px;font-size:15px;font-family:inherit;line-height:1.6}
+.query-box:focus{outline:none;border-color:var(--teal)}
+.model-btns{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.model-btn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--navy4);background:var(--navy3);color:var(--dim);cursor:pointer;font-size:15px;text-align:center;font-family:inherit;min-width:76px}
+.model-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:700}
+.slider-group{margin:18px 0}
+.slider-group label{font-size:16px;color:var(--dim);display:block;margin-bottom:6px}
+.slider-group .val{color:var(--gold);font-weight:700}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--teal) var(--pct,50%),var(--navy4) var(--pct,50%));outline:none;margin:8px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);cursor:pointer;border:2px solid var(--navy)}
+.range-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--dim)}
+.submit-btn{width:100%;height:44px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;margin-top:4px}
+.submit-btn:hover{opacity:.9}
+.submit-btn:disabled{opacity:.7;cursor:wait}
+.seed-label{margin-top:20px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--dim)}
+.seed-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.seed-pill{background:var(--navy3);border:1px solid var(--navy4);color:var(--dim);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;transition:border-color .2s,color .2s}
+.seed-pill:hover{border-color:var(--teal);color:var(--teal)}
+.result-shell{background:var(--navy2);border:1px dashed var(--navy4);border-radius:12px;padding:24px;min-height:430px}
+.placeholder{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:16px;color:var(--dim);font-style:italic}
+.answer-card,.citation-card,.debug-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:12px}
+.answer-text{font-size:16px;color:var(--white);line-height:1.75}
+.answer-text p{font-size:16px;color:var(--white);margin-bottom:10px}
+.answer-text p:last-child{margin-bottom:0}
+.answer-code{background:var(--navy3);padding:8px 12px;border-radius:6px;font-size:13px;color:var(--white);font-family:Consolas,'Courier New',monospace;white-space:pre-wrap;margin:10px 0}
+.citation-header{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;background:none;border:none;width:100%;padding:0;color:inherit;font-family:inherit}
+.citation-title{font-size:15px;color:var(--white);font-weight:700}
+.citation-meta{display:flex;align-items:center;gap:10px}
+.citation-badge{background:var(--navy3);border:1px solid var(--navy4);border-radius:999px;padding:2px 9px;font-size:12px;color:var(--dim)}
+.citation-chevron{font-size:14px;color:var(--dim)}
+.citation-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.citation-pill{background:var(--navy3);border:1px solid var(--navy4);border-radius:6px;padding:4px 10px;font-size:13px;color:var(--dim)}
+.big-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:0}
+.big-stat{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex:1;min-width:120px;text-align:center}
+.big-stat .num{font-size:26px;font-weight:700}
+.big-stat .lbl{font-size:13px;color:var(--dim);margin-top:4px}
+.skeleton-line{background:var(--navy3);border-radius:4px;height:16px;margin-bottom:8px;animation:shimmerPulse 1.5s ease-in-out infinite}
+.skeleton-line:nth-child(2){width:92%}
+.skeleton-line:nth-child(3){width:78%}
+@keyframes shimmerPulse{0%{opacity:.4}50%{opacity:.8}100%{opacity:.4}}
+.results-grid,.summary-grid,.case-grid{display:flex;gap:20px;flex-wrap:wrap}
+.results-grid>.chart-box,.summary-grid>.chart-box,.case-grid>.case-card{flex:1 1 320px}
+.chart-box{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:18px}
+.chart-box h4{font-size:16px;color:var(--dim);margin-bottom:8px}
+.chart-wrap{position:relative;height:220px}
+.chart-wrap.tall{height:250px}
+.data-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px;overflow:hidden}
+.data-table thead th{background:var(--navy3);color:var(--teal);padding:10px 12px;text-align:left;border-bottom:1px solid var(--navy4);font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+.data-table tbody tr:nth-child(odd){background:var(--navy2)}
+.data-table tbody tr:nth-child(even){background:var(--navy)}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.data-table .num-cell{font-family:Consolas,'Courier New',monospace;text-align:right}
+.data-table .full-row td:first-child{border-left:3px solid var(--teal)}
+.case-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:22px}
+.case-toggle{width:100%;background:none;border:none;padding:0;text-align:left;cursor:pointer;font-family:inherit}
+.case-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.case-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:12px}
+.case-heading{font-size:22px;color:var(--white);margin-bottom:8px}
+.case-chevron{color:var(--dim);font-size:20px;padding-top:2px}
+.score-stack{display:grid;gap:10px;margin:12px 0 2px}
+.score-item{display:grid;grid-template-columns:110px 46px 1fr;gap:10px;align-items:center}
+.score-label{font-size:13px;color:var(--dim)}
+.score-value{font-family:Consolas,'Courier New',monospace;color:var(--white);font-size:13px;text-align:right}
+.score-bar{height:6px;border-radius:3px;background:var(--navy4);overflow:hidden}
+.score-fill{height:100%;border-radius:3px;background:var(--dim)}
+.case-body{display:none;margin-top:12px}
+.case-card.open .case-body{display:block}
+.case-card.open .case-chevron{transform:rotate(180deg)}
+.note-list{list-style:none;margin-top:12px}
+.note-list li{color:var(--teal);font-size:15px;margin-bottom:6px}
+.link-row{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0 8px}
+.link-pill{display:inline-flex;align-items:center;gap:8px;background:var(--navy2);border:1px solid var(--teal);color:var(--teal);border-radius:20px;padding:7px 16px;font-size:14px;text-decoration:none}
+.link-pill:hover{background:rgba(2,195,154,0.08)}
+.phase-row{display:flex;gap:24px;flex-wrap:wrap;margin-top:24px}
+.phase-card{flex:1;min-width:280px;background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:24px;position:relative}
+.phase-card .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:12px}
+.phase-card h3{color:var(--white);margin-bottom:8px}
+.phase-stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.phase-stat{background:var(--navy3);padding:6px 12px;border-radius:6px;font-size:14px;color:var(--dim)}
+.phase-subline{font-size:14px;color:var(--dim);margin-bottom:10px}
+.phase-result{font-size:16px;color:var(--teal);margin-top:8px}
+.miss-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.miss-card{border:1px solid var(--coral);border-radius:10px;padding:14px;background:rgba(249,97,103,.04)}
+.miss-card h4{font-size:16px;color:var(--coral);margin-bottom:4px}
+.miss-card p{font-size:15px}
+.footer-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0;margin-top:40px}
+.footer-line{font-size:14px;color:var(--dim);text-align:center}
+.small-note{font-size:13px;color:var(--dim);margin-top:10px;font-style:italic}
+.cost-table td:last-child,.cost-table th:last-child{text-align:right}
+.cost-table td:nth-child(2),.cost-table th:nth-child(2){text-align:right;font-family:Consolas,'Courier New',monospace}
+.cost-table td:nth-child(3),.cost-table th:nth-child(3){text-align:right;font-family:Consolas,'Courier New',monospace}
+.result-tag{display:inline-block;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+.canvas-note{font-size:13px;color:var(--dim);margin-top:10px}
+.results-table-wrap{overflow-x:auto}
+@media(max-width:900px){
+  .finding-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  h1{font-size:28px}
+  .header-inner{gap:12px}
+  .header-left{min-width:0;overflow:hidden}
+  .header-brand,.header-sub{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+  #tabBar .tab-row{padding:10px 0}
+  .results-grid,.summary-grid,.case-grid,.explorer,.phase-row{flex-direction:column}
+  .finding-grid,.miss-grid{grid-template-columns:1fr}
+  .ki-inner{flex-direction:column}
+  .pipeline{flex-direction:column;align-items:stretch}
+  .pipe-arrow{transform:rotate(90deg)}
+  .stat-row{display:grid;grid-template-columns:repeat(2,1fr);width:100%}
+  .stat-card{max-width:none;min-width:0}
+  .score-item{grid-template-columns:96px 42px 1fr}
+  .hdr-dropdown-panel{width:calc(100vw - 32px);right:-74px}
+}
+@media(max-width:500px){
+  .wrap{padding:0 16px}
+  .header-inner{gap:8px}
+  .header-brand{font-size:13px}
+  .header-sub{font-size:11px}
+  .hdr-dropdown-trigger,#themeBtn{padding:7px 10px;font-size:12px}
+  .stat-row{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<header id="site-header">
+  <div class="wrap header-inner">
+    <div class="header-left">
+      <span class="header-brand">EDA Copilot</span>
+    </div>
+    <div class="header-center"></div>
+    <div id="header-right">
+      <div class="hdr-dropdown">
+        <button class="hdr-dropdown-trigger">Related Work →</button>
+        <div class="hdr-dropdown-panel">
+          <div class="hdr-panel-title">MLCAD 2026 — Instrumented ML-Driven PPA Optimization</div>
+          <div class="hdr-panel-body">
+            <p>The prior project asked whether low-cost machine learning could navigate real OpenROAD power, performance, and area trade-offs using a carefully instrumented experimental pipeline. It surfaced the ORFS v3.0 → 26Q1 version divergence that became anchor cases ED-002 and ED-005 in this EDA Copilot.</p>
+            <p><a class="hdr-panel-link" href="https://oguzhan-canada.github.io/instrumented-ml-ppa/findings.html">MLCAD 2026 findings →</a></p>
+            <p style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">The same cost engineering principles used to build this system at 10% of budget are packaged as a standalone decision tool.</p>
+            <p><a class="hdr-panel-link" href="https://oguzhan-canada.github.io/ai-inference-cost-optimizer/">AI Inference Cost Optimizer →</a></p>
+          </div>
+        </div>
+      </div>
+      <button id="themeBtn" type="button">☀ Light</button>
+    </div>
+  </div>
+</header>
+
+<nav id="tabBar">
+  <div class="wrap">
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
+      <button class="tab-btn" data-tab="live" type="button">Try Copilot</button>
+      <button class="tab-btn" data-tab="results" type="button">Results</button>
+      <button class="tab-btn" data-tab="system" type="button">System &amp; Code</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <section class="tab-content active" id="tab-overview">
+    <div class="wrap section">
+      <h2>Electronic Design Automation (EDA) Copilot</h2>
+      <div class="intro-quote">
+        <p>Chip design is one of the most complex engineering disciplines in the world — and one of the most knowledge-intensive. Engineers spend enormous time hunting through tool logs, version changelogs, and community forums to diagnose failures they have seen before. I built this project to ask: can we give those engineers a smarter assistant — one that doesn't just search text, but actually understands the <em>relationships</em> between errors, fixes, tool versions, and design rules?</p>
+        <p style="margin-top:14px">The answer is yes. This system combines a knowledge graph (a structured map of EDA concepts and their connections) with AI language models trained on real chip design data. On a standardized 120-question benchmark I created for this domain, the full system answers questions <strong>21.9× better</strong> than a bare AI model — and <strong>139% better</strong> than simple document search alone. It was built in 16 weeks for <strong>$240</strong>, roughly 10% of the original budget estimate. As an AI cost optimizer, delivering production-grade research infrastructure at a fraction of projected cost is as important a result as the accuracy numbers.</p>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="num">21.9×</div><div class="lbl">Answer quality vs bare LLM</div></div>
+        <div class="stat-card"><div class="num">139%</div><div class="lbl">Over vector-only search</div></div>
+        <div class="stat-card"><div class="num">67.5%</div><div class="lbl">Graph hit rate</div></div>
+        <div class="stat-card"><div class="num" style="color:var(--gold)">120</div><div class="lbl">EDABench items, 0 contaminated</div></div>
+        <div class="stat-card"><div class="num" style="color:var(--gold)">$240</div><div class="lbl">Total build cost</div></div>
+        <div class="stat-card" style="border-color:rgba(249,97,103,0.3)"><div class="num" style="color:var(--coral)">10%</div><div class="lbl">Of original $2,685 budget used</div></div>
+      </div>
+
+      <div class="section" style="padding-top:44px">
+        <h2>How It Works</h2>
+        <div class="intro-quote" style="margin-bottom:20px">
+          <p>Think of this system as a librarian who has read every chip design manual, error log, and community forum post — and instead of just remembering the words, has built a map of how everything connects. When an engineer asks why their design is failing, the system doesn't just search for similar-sounding text. It follows the map: this error connects to that tool version, which connects to a known fix, which was confirmed in a specific experiment. The six stages below show how that map was built and how queries travel through it.</p>
+          <p style="margin-top:14px">Here is what each stage does in plain terms: first, we gathered every document we could find about chip design tools — manuals, error logs, forum posts, release notes — over 14,000 files. Then we cleaned out duplicates, and used AI to generate 13,000 practice question-and-answer pairs so the system could learn the right way to respond. Next, we built a "knowledge graph" — essentially a giant web of connections showing which errors relate to which tool versions, which fixes work for which problems, and which design rules apply where. We also built a fast search index so the system can quickly find relevant text passages. When a question comes in, the system searches both the knowledge graph and the text index simultaneously, ranks the best results, and hands them to an AI model that writes a clear, sourced answer.</p>
+        </div>
+        <div class="pipeline">
+          <div class="pipe-node"><div class="pipe-icon">📄</div><div class="pipe-label">Corpus</div><div class="pipe-sub">252M tokens, 14K files</div></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node"><div class="pipe-icon">🧹</div><div class="pipe-label">Dedup + Synth</div><div class="pipe-sub">13K Q&amp;A pairs</div></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node"><div class="pipe-icon">🕸️</div><div class="pipe-label">Knowledge Graph</div><div class="pipe-sub">18K nodes, Neo4j</div></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node"><div class="pipe-icon">🔍</div><div class="pipe-label">Vector Index</div><div class="pipe-sub">8.9K chunks, Weaviate</div></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node"><div class="pipe-icon">🔗</div><div class="pipe-label">Fusion Retrieval</div><div class="pipe-sub">Graph + vector + rerank</div></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-node"><div class="pipe-icon">💬</div><div class="pipe-label">Synthesis</div><div class="pipe-sub">Claude API + LoRA</div></div>
+        </div>
+      </div>
+
+      <div class="section" style="padding-top:8px">
+        <h2>What We Found</h2>
+        <div class="intro-quote" style="margin-bottom:20px">
+          <p>The results exceeded expectations — especially on the question of cost. The system answers EDA questions 21.9 times more accurately than a standalone AI model, and nearly 140% better than simple document search. But the finding that stands out most as an AI cost optimization project: the entire system was built for $240, about one dollar in every ten of the original estimate. That wasn't luck — it came from deliberate engineering choices: using batch pricing discounts, building a three-tier extraction pipeline where 85% of work is free, and treating every cloud instance like a taxi meter. The six findings below tell the full story.</p>
+          <p style="margin-top:14px">In simpler terms: we tested four different ways to answer chip design questions — asking a plain AI model with no help, giving it a basic text search, giving it a fine-tuned model trained on EDA data, and giving it our full system with the knowledge graph. The full system won by a wide margin on almost every question type. The knowledge graph was especially important for questions that required understanding which version of a tool introduced a bug or how different components interact — things that plain text search simply can't piece together. Meanwhile, the fine-tuned model excelled on patterns it had seen in training, showing that the two approaches complement each other rather than compete. The six cards below summarize the key numbers.</p>
+        </div>
+        <div class="finding-grid" style="margin-top:20px">
+          <div class="finding-card">
+            <div class="finding-kicker">Headline Result</div>
+            <div class="finding-metric">21.9×</div>
+            <p>The full GraphRAG system scores 0.482 answer quality vs 0.022 for a bare Claude model on EDABench — confirming that retrieval-augmented generation with a knowledge graph is essential for EDA domain tasks.</p>
+          </div>
+          <div class="finding-card">
+            <div class="finding-kicker">Knowledge Graph Lift</div>
+            <div class="finding-metric">+139%</div>
+            <p>Structured graph retrieval outperforms vector-only search by 139% overall, and by 4.0× on cross-tool knowledge queries. Graph hit rate is 67.5% across all 120 benchmark items.</p>
+          </div>
+          <div class="finding-card">
+            <div class="finding-kicker">Version-Aware Reasoning</div>
+            <div class="finding-metric">2.5×</div>
+            <p>On ED-005 (OpenROAD SIGSEGV crash tied to a specific build hash), the full system is 2.5× better than both vector search and the fine-tuned model alone. This is the core thesis: structured version context wins where flat text fails.</p>
+          </div>
+          <div class="finding-card">
+            <div class="finding-kicker">Fine-Tuning Finding</div>
+            <div class="finding-metric">0.431</div>
+            <p>A QLoRA-adapted Mistral-7B achieves 0.431 answer quality without any retrieval — within 11% of the full system. Fine-tuning and structured retrieval are complementary, not substitutable. Training cost: $9.09 on a single GPU.</p>
+          </div>
+          <div class="finding-card" style="border-color:rgba(240,192,64,0.4)">
+            <div class="finding-kicker">AI Cost Optimization</div>
+            <div class="finding-metric">$240</div>
+            <p>Built for 10% of the $2,685 original budget. Key optimizations: Anthropic Batch API (50% discount on all offline generation), tiered triple extraction (85% free regex/NER, only 15% to LLM), and Spot instance discipline on AWS.</p>
+          </div>
+          <div class="finding-card">
+            <div class="finding-kicker">EDABench</div>
+            <div class="finding-metric">120 items</div>
+            <p>A new zero-contamination benchmark for EDA copilot evaluation. Five task categories, seven verified seed bugs from real OpenROAD runs, KG-grounded ground truth. Released as part of this project.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="key-insight-banner">
+      <div class="wrap">
+        <div style="font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:16px">Related Projects</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;flex:1;min-width:260px">
+            <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">AI Cost Optimization</div>
+            <div style="font-size:17px;font-weight:700;color:var(--white);margin-bottom:8px">AI Inference Cost Optimizer</div>
+            <p style="font-size:15px;margin-bottom:14px">A rule-based FinOps decision assistant that recommends the cheapest viable AI inference path for any workload — serverless, batch, self-hosted, or API. The same cost discipline used to build this EDA Copilot at 10% of budget, packaged as a standalone tool.</p>
+            <a class="banner-link" href="https://oguzhan-canada.github.io/ai-inference-cost-optimizer/" style="font-size:13px">View the Cost Optimizer →</a>
+          </div>
+          <div style="background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;flex:1;min-width:260px">
+            <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:6px">ML-Driven Power, Performance and Area (PPA) Optimization</div>
+            <div style="font-size:17px;font-weight:700;color:var(--white);margin-bottom:8px">MLCAD 2026 — Instrumented ML-Driven PPA Optimization</div>
+            <p style="font-size:15px;margin-bottom:14px">The prior project that discovered the ORFS v3.0 → 26Q1 version divergence — the empirical anchor for this system. Bayesian optimization, GAT-based timing prediction, and pre-registered negative results on real OpenROAD chip designs.</p>
+            <a class="banner-link" href="https://oguzhan-canada.github.io/instrumented-ml-ppa/findings.html" style="font-size:13px">View the PPA Optimization →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="tab-content" id="tab-live">
+    <div class="wrap section">
+      <h2>Try the EDA Copilot</h2>
+      <p>Live queries against the full GraphRAG pipeline. Graph + vector + reranker + Claude synthesis.</p>
+      <div class="caveat" style="margin-top:16px">⚠ API not yet deployed. Queries will fail until the endpoint URL is configured in the script block at the bottom of this file. Seed queries are pre-loaded and ready for when the API is live.</div>
+
+      <div class="explorer">
+        <div class="ctrl-panel">
+          <div class="panel-kicker">Your Query</div>
+          <form id="queryForm">
+            <textarea id="queryInput" class="query-box" placeholder="e.g. Why does JPEG timing fail after upgrading to ORFS 26Q1?"></textarea>
+            <div style="margin-top:16px">
+              <label style="font-size:14px;color:var(--dim)">Retrieval mode</label>
+              <div class="model-btns" id="modeButtons">
+                <button class="model-btn active" data-mode="Hybrid" type="button">Hybrid</button>
+                <button class="model-btn" data-mode="Dense" type="button">Dense</button>
+                <button class="model-btn" data-mode="Sparse" type="button">Sparse</button>
+              </div>
+            </div>
+            <div class="slider-group">
+              <label for="topK">Results: <span class="val" id="topKVal">5</span></label>
+              <input id="topK" type="range" min="1" max="10" value="5" step="1">
+              <div class="range-labels"><span>1</span><span>10</span></div>
+            </div>
+            <button id="submitBtn" class="submit-btn" type="submit">Ask Copilot →</button>
+          </form>
+          <div class="seed-label">Try a seed query:</div>
+          <div class="seed-pills">
+            <button class="seed-pill" type="button">Why does JPEG timing fail after upgrading to ORFS 26Q1?</button>
+            <button class="seed-pill" type="button">OpenROAD crashes with SIGSEGV on ibex in global routing</button>
+            <button class="seed-pill" type="button">How do I write an SDC constraint for a 500MHz clock in nanoseconds?</button>
+            <button class="seed-pill" type="button">What is the metal2 spacing rule in SKY130?</button>
+            <button class="seed-pill" type="button">SDC time unit mismatch producing implausible WNS values</button>
+          </div>
+        </div>
+
+        <div class="result-panel">
+          <div id="resultRoot" class="result-shell">
+            <div class="placeholder">Your answer will appear here.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-content" id="tab-results">
+    <div class="wrap section">
+      <h2>EDABench Evaluation Results</h2>
+      <div class="intro-quote" style="margin-bottom:18px">
+        <p>EDABench is a 120-item evaluation benchmark built specifically for this domain, covering five task categories with zero training data contamination. All four systems were judged in a single Claude Sonnet batch using identical prompts — ensuring the scores are directly comparable with no calibration drift between runs.</p>
+      </div>
+
+      <div class="results-table-wrap">
+        <table class="data-table" style="margin-top:18px">
+          <thead>
+            <tr>
+              <th>System</th>
+              <th class="num-cell">Ans. Quality</th>
+              <th class="num-cell">Factual</th>
+              <th class="num-cell">Completeness</th>
+              <th class="num-cell">Actionability</th>
+              <th class="num-cell">Specificity</th>
+              <th class="num-cell">Graph Hit %</th>
+              <th class="num-cell">Latency</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="full-row">
+              <td><strong>Full GraphRAG</strong></td>
+              <td class="num-cell"><strong>0.482</strong></td>
+              <td class="num-cell"><strong>0.810</strong></td>
+              <td class="num-cell"><strong>0.635</strong></td>
+              <td class="num-cell">0.563</td>
+              <td class="num-cell">0.573</td>
+              <td class="num-cell"><strong>67.5%</strong></td>
+              <td class="num-cell">12.7s</td>
+            </tr>
+            <tr>
+              <td>LoRA-only</td>
+              <td class="num-cell">0.431</td>
+              <td class="num-cell">0.491</td>
+              <td class="num-cell">0.565</td>
+              <td class="num-cell"><strong>0.655</strong></td>
+              <td class="num-cell"><strong>0.656</strong></td>
+              <td class="num-cell">0.0%</td>
+              <td class="num-cell">15.7s</td>
+            </tr>
+            <tr>
+              <td>Vector-only RAG</td>
+              <td class="num-cell">0.202</td>
+              <td class="num-cell">0.672</td>
+              <td class="num-cell">0.292</td>
+              <td class="num-cell">0.233</td>
+              <td class="num-cell">0.394</td>
+              <td class="num-cell">0.0%</td>
+              <td class="num-cell">13.0s</td>
+            </tr>
+            <tr>
+              <td>Direct LLM</td>
+              <td class="num-cell">0.022</td>
+              <td class="num-cell">0.207</td>
+              <td class="num-cell">0.071</td>
+              <td class="num-cell">0.048</td>
+              <td class="num-cell">0.075</td>
+              <td class="num-cell">0.0%</td>
+              <td class="num-cell">5.4s</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="footnote">All 480 evaluations (120 items × 4 systems) in a single Claude Sonnet batch. Zero parse failures.</div>
+
+      <div class="intro-quote" style="margin-top:18px">
+        <p>This table is the core evidence of the project. We tested every one of the 120 benchmark questions against four different systems and scored each answer on four dimensions: is it factually correct, is it complete, is it actionable (can an engineer use it to fix the problem), and is it specific enough to be useful? The overall "Answer Quality" score is the minimum of these four — meaning one weak dimension drags the whole score down. This is deliberately strict: a response that is factually perfect but vague scores low, because vague answers don't help engineers.</p>
+        <p style="margin-top:14px">The headline finding is clear: the full GraphRAG system (knowledge graph + vector search + reranker + Claude) scores 0.482, which is 21.9 times higher than a bare AI model at 0.022. But the more nuanced story is in the rows between. The fine-tuned LoRA model scores 0.431 without any retrieval at all — it learned EDA patterns from training data — but it can't access the knowledge graph, so its graph hit rate is 0%. Vector-only search scores just 0.202, proving that plain document retrieval isn't enough for this domain. The knowledge graph provides the structured context that makes the difference.</p>
+      </div>
+
+      <div class="results-grid" style="margin-top:16px">
+        <div class="chart-box">
+          <h4>Answer quality by category</h4>
+          <div class="chart-wrap"><canvas id="qualityByCategoryChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h4>Graph hit rate by category</h4>
+          <div class="chart-wrap"><canvas id="graphHitChart"></canvas></div>
+          <div class="canvas-note">Entity extractor doesn't match PDK rule IDs yet</div>
+        </div>
+      </div>
+
+      <div class="intro-quote" style="margin-top:18px">
+        <p>These two charts break down performance by the type of question being asked. The left chart shows that the system performs best on constraint generation and RTL questions (0.517 and 0.511) — these are areas where the knowledge graph has dense, well-connected data about tool configurations and code patterns. DRC Rule Lookup and Cross-Tool Knowledge score lower (0.422 each), but for different reasons: DRC questions involve PDK rule IDs that the entity extractor can't yet match, while cross-tool questions require connections across multiple tool boundaries.</p>
+        <p style="margin-top:14px">The right chart tells an even clearer story. Graph hit rate — the percentage of answers that actually used information from the knowledge graph — is 89% for RTL and Cross-Tool questions, 83% for Constraint Generation, and 71% for Error Diagnosis. DRC Rule Lookup sits at 0% because the entity extractor doesn't recognize PDK rule naming patterns like METAL1.S.1. This is a known limitation with a straightforward fix (regex pattern extension), not a fundamental system weakness. The high graph hit rates everywhere else confirm that the knowledge graph is actively contributing to answers, not just sitting unused.</p>
+      </div>
+
+      <div class="section" style="padding-top:34px;padding-bottom:0">
+        <h2>Regression Anchor Cases</h2>
+        <p>Two seed items from real OpenROAD runs illustrate the complementarity of graph retrieval and fine-tuning.</p>
+        <div class="case-grid" style="margin-top:18px">
+          <div class="case-card" id="case-ed005" style="border-top:3px solid var(--teal)">
+            <button class="case-toggle" type="button">
+              <div class="case-top">
+                <div>
+                  <div class="case-badge" style="background:rgba(2,195,154,0.12);color:var(--teal)">ERROR DIAGNOSIS · HARD</div>
+                  <div class="case-heading">ibex SIGSEGV · OpenROAD 26Q1</div>
+                </div>
+                <div class="case-chevron">▾</div>
+              </div>
+            </button>
+            <div class="score-stack">
+              <div class="score-item"><div class="score-label">Full GraphRAG</div><div class="score-value">0.50</div><div class="score-bar"><div class="score-fill" style="width:100%;background:var(--teal)"></div></div></div>
+              <div class="score-item"><div class="score-label">LoRA-only</div><div class="score-value">0.20</div><div class="score-bar"><div class="score-fill" style="width:40%;background:var(--dim)"></div></div></div>
+              <div class="score-item"><div class="score-label">Vector-only</div><div class="score-value">0.20</div><div class="score-bar"><div class="score-fill" style="width:40%;background:var(--dim)"></div></div></div>
+              <div class="score-item"><div class="score-label">Direct LLM</div><div class="score-value">0.10</div><div class="score-bar"><div class="score-fill" style="width:20%;background:var(--dim)"></div></div></div>
+            </div>
+            <div class="case-body">
+              <p>After upgrading from ORFS v3.0 to 26Q1, ibex crashes with SIGSEGV during global routing (stage 5_1_grt) with OPENROAD_HIERARCHICAL=1. Peak memory 717 MB — not OOM. This is an upstream regression in build 26Q1-2900-gdf79404cd8.</p>
+              <div class="success-note" style="margin-top:12px">2.5× lift from graph — version-specific entity matching retrieved the exact build hash and crash stage.</div>
+            </div>
+          </div>
+
+          <div class="case-card" id="case-ed002" style="border-top:3px solid var(--gold)">
+            <button class="case-toggle" type="button">
+              <div class="case-top">
+                <div>
+                  <div class="case-badge" style="background:rgba(240,192,64,0.12);color:var(--gold)">ERROR DIAGNOSIS · HARD</div>
+                  <div class="case-heading">JPEG WNS sign flip · ORFS v3.0 → 26Q1</div>
+                </div>
+                <div class="case-chevron">▾</div>
+              </div>
+            </button>
+            <div class="score-stack">
+              <div class="score-item"><div class="score-label">LoRA-only</div><div class="score-value">0.70</div><div class="score-bar"><div class="score-fill" style="width:100%;background:var(--gold)"></div></div></div>
+              <div class="score-item"><div class="score-label">Full GraphRAG</div><div class="score-value">0.20</div><div class="score-bar"><div class="score-fill" style="width:28.6%;background:var(--dim)"></div></div></div>
+              <div class="score-item"><div class="score-label">Direct LLM</div><div class="score-value">0.20</div><div class="score-bar"><div class="score-fill" style="width:28.6%;background:var(--dim)"></div></div></div>
+              <div class="score-item"><div class="score-label">Vector-only</div><div class="score-value">0.10</div><div class="score-bar"><div class="score-fill" style="width:14.3%;background:var(--dim)"></div></div></div>
+            </div>
+            <div class="case-body">
+              <p>After migrating from ORFS v3.0 to 26Q1, JPEG WNS flips from +13.48 ps (timing met) to -2.16 ps (violated). This is the paper's central empirical finding, first discovered in [40] and reproduced here. riscv32i shows a reverse flip.</p>
+              <div class="caveat" style="margin-top:12px">LoRA wins here — fine-tuning internalized the WNS flip pattern from training data. Graph retrieval missed the specific version comparison. Fine-tuning and retrieval are complementary.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="intro-quote" style="margin-top:18px">
+        <p>These two case studies are the most concrete evidence in the project because they come from real bugs discovered during actual chip design experiments. ED-005 is a crash that only happens with a specific version of OpenROAD (build 26Q1-2900-gdf79404cd8) when running hierarchical global routing on the ibex processor design. The full GraphRAG system scores 2.5× higher than any other approach because the knowledge graph contains the exact build hash, the crash stage, and the version relationship — information that plain text search can't piece together from scattered log files and changelogs.</p>
+        <p style="margin-top:14px">ED-002 flips the story. Here, the fine-tuned LoRA model wins decisively (0.70 vs 0.20) because the WNS timing sign flip between ORFS v3.0 and 26Q1 was well-represented in the training data. The model learned this specific pattern and can reproduce it without needing to search anything. This is the key insight about complementarity: structured retrieval excels when the answer depends on following version-specific connections through a graph, while fine-tuning excels when the answer matches a pattern the model has seen during training. Neither approach alone covers all cases — the full system needs both.</p>
+      </div>
+
+      <div class="summary-grid" style="margin-top:26px">
+        <div class="chart-box">
+          <h4>Difficulty breakdown</h4>
+          <div class="chart-wrap"><canvas id="difficultyChart"></canvas></div>
+          <div class="canvas-note">Expert &gt; Hard — expert items have cleaner KG anchors (specific tools/versions). Hard items have ambiguous multi-factor causation.</div>
+        </div>
+        <div class="chart-box">
+          <h4>AI Cost Optimization</h4>
+          <div class="chart-wrap tall"><canvas id="costChart"></canvas></div>
+          <div class="success-note">$240.55 total · 34% of $700 revised budget · 9% of $2,685 original budget estimate.</div>
+          <p style="font-size:14px;color:var(--dim);margin-top:10px">
+            The cost engineering techniques used here — Batch API pricing, tiered processing, Spot instance discipline — are documented as reusable patterns in the
+            <a class="inline-link" href="https://oguzhan-canada.github.io/ai-inference-cost-optimizer/">AI Inference Cost Optimizer →</a>
+          </p>
+          <ul class="note-list">
+            <li>Anthropic Batch API → 50% off all offline generation and judging</li>
+            <li>Tiered triple extraction → 85% free (regex/NER), only 15% to LLM</li>
+            <li>Spot instance discipline → $2.41 for full ORFS sweep vs $55–80 planned</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="intro-quote" style="margin-top:18px">
+        <p>The difficulty chart reveals a surprising pattern: expert-level questions actually score higher (0.460) than hard-level ones (0.390). This isn't a flaw — it reflects how knowledge graphs work. Expert questions tend to involve specific, named tools and version numbers that the graph can match precisely. Hard questions often involve ambiguous multi-factor causation where the right answer depends on interactions between several components, making both retrieval and synthesis more difficult. Easy questions score highest (0.597) as expected, confirming the system handles straightforward lookups well.</p>
+        <p style="margin-top:14px">The cost breakdown tells the project's financial story. Synthetic Q&amp;A generation consumed 87% of the budget ($208.64) — this was the single largest investment because generating 13,000 high-quality training pairs required extensive AI processing. Everything else was remarkably cheap: the knowledge graph extraction cost nothing extra (85% was done with free regex and NER tools), LoRA fine-tuning on a single GPU cost $9.09, and the full ORFS parameter sweep on AWS Spot instances cost just $2.41. The three cost-saving strategies listed — Batch API discounts, tiered processing, and Spot instance discipline — are what made a $240 total possible against a $2,685 original estimate.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-content" id="tab-system">
+    <div class="wrap section">
+      <h2>System Architecture</h2>
+      <div class="link-row">
+        <a class="link-pill" href="#">📄 Research (PDF)</a>
+        <a class="link-pill" href="#">💻 GitHub Repo</a>
+      </div>
+
+      <div class="phase-row">
+        <div class="phase-card">
+          <div class="badge" style="background:rgba(2,195,154,0.15);color:var(--teal)">PHASE 1</div>
+          <h3>Corpus Collection &amp; Dedup</h3>
+          <div class="phase-stats"><div class="phase-stat">14,294 files</div><div class="phase-stat">252M tokens</div><div class="phase-stat">6 sources</div></div>
+          <div class="phase-subline">After dedup: 7,351 files · 4.36% dedup rate</div>
+          <div class="phase-result">+ 1,801 forum Q&amp;A pairs (GitHub Issues)</div>
+        </div>
+        <div class="phase-card">
+          <div class="badge" style="background:rgba(2,195,154,0.15);color:var(--teal)">PHASE 1</div>
+          <h3>Synthetic Q&amp;A Pipeline</h3>
+          <div class="phase-stats"><div class="phase-stat">13,024 pairs</div><div class="phase-stat">12 violation families</div><div class="phase-stat">judge ≥ 0.90</div></div>
+          <div class="phase-result">$208.64 · Batch API saves ~50%</div>
+        </div>
+        <div class="phase-card">
+          <div class="badge" style="background:rgba(42,136,224,0.15);color:var(--blue)">PHASE 2</div>
+          <h3>Knowledge Graph</h3>
+          <div class="phase-stats"><div class="phase-stat">18,037 nodes</div><div class="phase-stat">16,530 relationships</div><div class="phase-stat">5 seed bugs</div></div>
+          <div class="phase-result">p50 2-hop latency: 45ms · 0 orphan nodes</div>
+        </div>
+        <div class="phase-card">
+          <div class="badge" style="background:rgba(240,192,64,0.15);color:var(--gold)">PHASE 3</div>
+          <h3>Vector Store</h3>
+          <div class="phase-stats"><div class="phase-stat">166,939 chunks</div><div class="phase-stat">8,888 indexed</div><div class="phase-stat">voyage-code-2</div></div>
+          <div class="phase-result">$0.25 embedding cost · Weaviate hybrid search</div>
+        </div>
+        <div class="phase-card">
+          <div class="badge" style="background:rgba(240,192,64,0.15);color:var(--gold)">PHASE 3</div>
+          <h3>Fusion Retrieval</h3>
+          <div class="phase-stats"><div class="phase-stat">Neo4j 2-hop</div><div class="phase-stat">Weaviate BM25+dense</div><div class="phase-stat">ms-marco reranker</div></div>
+          <div class="phase-result">Entity extraction against 17,835 cached KG node IDs</div>
+        </div>
+        <div class="phase-card">
+          <div class="badge" style="background:rgba(249,97,103,0.15);color:var(--coral)">PHASE 3</div>
+          <h3>LoRA Fine-tuning</h3>
+          <div class="phase-stats"><div class="phase-stat">Mistral-7B</div><div class="phase-stat">QLoRA 4-bit</div><div class="phase-stat">2,586 steps</div></div>
+          <div class="phase-result">12.5× perplexity improvement · $9.09 GPU cost</div>
+        </div>
+      </div>
+
+      <div class="intro-quote" style="margin-top:28px">
+        <p>The system was designed as a six-stage pipeline where each component feeds the next — and each was independently validated before moving forward. We started by collecting every publicly available document about open-source chip design tools: manuals, error logs, GitHub issues, forum posts, and release notes — over 14,000 files totaling 252 million tokens. After removing duplicates, we used AI to generate 13,000 synthetic question-and-answer pairs that teach the system how EDA engineers actually ask questions and what good answers look like.</p>
+        <p style="margin-top:14px">From that cleaned corpus, we built two retrieval systems that work in parallel. The knowledge graph (Neo4j) maps structured relationships — which tool versions introduced which bugs, which fixes apply to which errors, which design rules conflict with which configurations. The vector index (Weaviate) enables fast similarity search over text passages. When a query arrives, both systems are searched simultaneously, results are merged and re-ranked by a cross-encoder model, and the best evidence is handed to an AI model (Claude) that writes a clear, cited answer. A separately fine-tuned Mistral-7B model adds domain vocabulary and response formatting. The entire pipeline was built incrementally over 16 weeks, with every decision documented in a 1,414-line experimental trail.</p>
+      </div>
+
+      <div class="section" style="padding-top:36px;padding-bottom:0">
+        <h2>Stack</h2>
+        <table class="data-table">
+          <thead><tr><th>Component</th><th>Technology</th></tr></thead>
+          <tbody>
+            <tr><td>Knowledge graph</td><td>Neo4j Aura (cloud)</td></tr>
+            <tr><td>Vector store</td><td>Weaviate Cloud</td></tr>
+            <tr><td>Embeddings</td><td>voyage-code-2 (1,536 dim)</td></tr>
+            <tr><td>Reranker</td><td>cross-encoder/ms-marco-MiniLM-L-6-v2</td></tr>
+            <tr><td>Fine-tuned model</td><td>Mistral-7B-Instruct-v0.3 + QLoRA</td></tr>
+            <tr><td>Synthesis</td><td>Claude Sonnet API</td></tr>
+            <tr><td>API layer</td><td>FastAPI (Python)</td></tr>
+            <tr><td>UI</td><td>Gradio (port 7860) + this page</td></tr>
+            <tr><td>Infrastructure</td><td>AWS (Spot + on-demand), Terraform</td></tr>
+            <tr><td>Corpus</td><td>OpenROAD, SKY130, Yosys, OpenLane, OpenSTA, EPFL</td></tr>
+          </tbody>
+        </table>
+
+        <div class="intro-quote" style="margin-top:28px">
+          <p>Every technology choice was driven by a simple principle: use managed cloud services where possible to minimize operational overhead, and pick tools that are proven in production rather than cutting-edge but fragile. Neo4j Aura was chosen for the knowledge graph because it offers native graph traversal with sub-50ms latency on 2-hop queries — critical for real-time retrieval. Weaviate Cloud provides hybrid search (combining BM25 keyword matching with dense vector similarity) out of the box, eliminating the need to build and maintain separate search pipelines. The voyage-code-2 embedding model was selected specifically because it's optimized for code and technical documentation, producing 1,536-dimensional vectors that capture domain-specific semantics better than general-purpose models.</p>
+          <p style="margin-top:14px">For the AI backbone, we use Claude Sonnet for answer synthesis because it handles long context windows and produces well-structured responses with citations. The fine-tuned Mistral-7B model was trained using QLoRA (4-bit quantization) to keep GPU costs under $10 — it runs on a single GPU and adds EDA domain vocabulary that the base model lacks. The cross-encoder reranker (ms-marco-MiniLM) sits between retrieval and synthesis, ensuring that only the most relevant evidence reaches the answer generator. FastAPI serves the entire pipeline as a REST endpoint, and Gradio provides an interactive demo interface. All infrastructure runs on AWS using Spot instances where possible — the full ORFS parameter sweep cost $2.41 instead of the $55–80 originally budgeted.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap section" style="padding-top:34px">
+      <h2>Known Limitations &amp; Open Items</h2>
+      <div class="miss-grid">
+        <div class="miss-card">
+          <h4>Direct LLM table row</h4>
+          <p>Paper Table 1 row for Direct LLM contains stale numbers from a pre-fix eval run. Corrected values: AQ=0.022, Factual=0.207. Fix pending in paper revision.</p>
+        </div>
+        <div class="miss-card">
+          <h4>DRC entity matching</h4>
+          <p>Entity extractor does not match PDK rule IDs (e.g. METAL1.S.1). DRC Rule Lookup achieves 0% graph hit rate despite 0.422 answer quality. Regex pattern extension is the fix.</p>
+        </div>
+        <div class="miss-card">
+          <h4>expected_graph_nodes coverage</h4>
+          <p>Only 33 of 120 EDABench items have KG-grounded expected_graph_nodes populated. 87 items are answer-quality-only. Full annotation is future work.</p>
+        </div>
+        <div class="miss-card">
+          <h4>swerv_wrapper ORFS run</h4>
+          <p>swerv_wrapper ORFS sweep was deferred (requires 64 GB r6i.2xlarge). 9 of 12 planned runs completed. ibex 26Q1 SIGSEGV is upstream OpenROAD bug (26Q1-2900-gdf79404cd8), documented as ED-005.</p>
+        </div>
+      </div>
+      <div class="intro-quote" style="margin-top:20px">
+        <p>No research system ships without gaps, and being transparent about them is as important as reporting what works. Four areas need attention in upcoming work. First, the entity extractor currently cannot match PDK design rule IDs (like METAL1.S.1), which is why DRC Rule Lookup shows 0% graph hit rate despite reasonable answer quality — a straightforward regex pattern extension will fix this. Second, only 33 of the 120 EDABench items have full KG-grounded expected nodes annotated; the remaining 87 are scored on answer quality alone, which limits how precisely we can measure retrieval accuracy. Third, the swerv_wrapper design was excluded from the ORFS parameter sweep because it requires a 64 GB instance, meaning 3 of the 12 planned experimental runs were deferred. Finally, the Direct LLM baseline row in the paper contains numbers from a pre-fix evaluation run that need to be updated to the corrected values (AQ=0.022, Factual=0.207) before final submission. None of these limitations affect the core findings — the 21.9× improvement and 67.5% graph hit rate are measured on the components that work — but addressing them will strengthen both the benchmark and the system for future use.</p>
+      </div>
+    </div>
+
+    <section class="key-insight-banner">
+      <div class="wrap">
+        <div class="ki-inner">
+          <div class="ki-icon">📋</div>
+          <div>
+            <div class="ki-label">Full Experimental Trail</div>
+            <div class="ki-headline">PROGRESS.md — 1,414 lines, 16 weeks</div>
+            <div class="ki-body">Every decision, cost, gate check, and failure is documented. The 50K triple shortfall rationale, the $208 QA generation overrun, the ibex SIGSEGV discovery, the judge calibration fix in Week 15 — all traceable. This is the artifact that makes the work reproducible.</div>
+            <a class="banner-link" href="#">View on GitHub →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-line">Oguzhan Tekin · Machine Learning and Artificial Intelligence Researcher · Toronto · 2026</div>
+    <div class="footer-links">
+      <a href="https://github.com/oguzhan-canada">GitHub</a>
+      <a href="mailto:oguzhantekin@gmail.com">oguzhantekin@gmail.com</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const API_URL = 'https://YOUR_API_URL/query'; // replace before deploy
+const THEME_KEY = 'eda-copilot-theme';
+let qualityByCategoryChartInst, graphHitChartInst, difficultyChartInst, costChartInst;
+
+function getCSS(name){
+  return getComputedStyle(document.body).getPropertyValue(name).trim();
+}
+
+function setThemeLabel(){
+  document.getElementById('themeBtn').textContent = document.body.classList.contains('light') ? '◑ Dark' : '☀ Light';
+}
+
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  localStorage.setItem(THEME_KEY, document.body.classList.contains('light') ? 'light' : 'dark');
+  setThemeLabel();
+  applyChartTheme();
+}
+
+function showTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(panel => panel.classList.toggle('active', panel.id === 'tab-' + tab));
+}
+
+function baseChartOptions(extra){
+  return Object.assign({
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:getCSS('--dim'),boxWidth:12,padding:16}}},
+    scales:{
+      x:{ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'},title:{color:getCSS('--dim')}},
+      y:{ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'},title:{color:getCSS('--dim')}}
+    }
+  }, extra || {});
+}
+
+function initCharts(){
+  Chart.defaults.color = getCSS('--dim');
+  Chart.defaults.font.family = "'Calibri','Candara','Segoe UI',sans-serif";
+  Chart.defaults.font.size = 14;
+
+  qualityByCategoryChartInst = new Chart(document.getElementById('qualityByCategoryChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels:['Constraint Generation','RTL Q&A','Error Diagnosis','DRC Rule Lookup','Cross-Tool Knowledge'],
+      datasets:[{label:'Answer quality by category',data:[0.517,0.511,0.504,0.422,0.422],backgroundColor:'#02C39A',borderRadius:4}]
+    },
+    options:baseChartOptions({
+      indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{min:0,max:0.6,ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'}},
+        y:{ticks:{color:getCSS('--dim')},grid:{display:false}}
+      }
+    })
+  });
+
+  graphHitChartInst = new Chart(document.getElementById('graphHitChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels:['RTL Q&A','Cross-Tool Knowledge','Constraint Generation','Error Diagnosis','DRC Rule Lookup'],
+      datasets:[{label:'Graph hit rate by category',data:[89,89,83,71,0],backgroundColor:['#2a88e0','#2a88e0','#2a88e0','#2a88e0','#F96167'],borderRadius:4}]
+    },
+    options:baseChartOptions({
+      indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{min:0,max:100,ticks:{color:getCSS('--dim'),callback:v=>v+'%'},grid:{color:'rgba(106,143,173,0.12)'}},
+        y:{ticks:{color:getCSS('--dim')},grid:{display:false}}
+      }
+    })
+  });
+
+  difficultyChartInst = new Chart(document.getElementById('difficultyChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels:['Easy','Medium','Hard','Expert'],
+      datasets:[{label:'Answer quality',data:[0.597,0.443,0.390,0.460],backgroundColor:['#02C39A','#2a88e0','#F96167','#f0c040'],borderRadius:4}]
+    },
+    options:baseChartOptions({
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{beginAtZero:true,max:0.65,ticks:{color:getCSS('--dim')},grid:{color:'rgba(106,143,173,0.12)'}},
+        x:{ticks:{color:getCSS('--dim')},grid:{display:false}}
+      }
+    })
+  });
+
+  costChartInst = new Chart(document.getElementById('costChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels:['Budget'],
+      datasets:[
+        {label:'Synthetic Q&A generation',data:[208.64],backgroundColor:'#02C39A'},
+        {label:'Forum LLM batch',data:[8.93],backgroundColor:'#2a88e0'},
+        {label:'LoRA GPU training',data:[9.09],backgroundColor:'#f0c040'},
+        {label:'ORFS AWS sweep',data:[2.41],backgroundColor:'#F96167'},
+        {label:'Corpus LLM batch',data:[4.00],backgroundColor:'#5aa6f2'},
+        {label:'Embedding (Voyage)',data:[0.25],backgroundColor:'#73d7c1'},
+        {label:'Evaluation runs',data:[7.00],backgroundColor:'#9c7cf3'}
+      ]
+    },
+    options:baseChartOptions({
+      indexAxis:'y',
+      scales:{
+        x:{stacked:true,ticks:{color:getCSS('--dim'),callback:v=>'$'+v},grid:{color:'rgba(106,143,173,0.12)'}},
+        y:{stacked:true,ticks:{color:getCSS('--dim')},grid:{display:false}}
+      }
+    })
+  });
+}
+
+function applyChartTheme(){
+  [qualityByCategoryChartInst, graphHitChartInst, difficultyChartInst, costChartInst].forEach(chart => {
+    if(!chart) return;
+    const opts = chart.options;
+    if(opts.plugins && opts.plugins.legend && opts.plugins.legend.labels){
+      opts.plugins.legend.labels.color = getCSS('--dim');
+    }
+    if(opts.scales){
+      Object.keys(opts.scales).forEach(axis => {
+        const scale = opts.scales[axis];
+        if(scale.ticks) scale.ticks.color = getCSS('--dim');
+        if(scale.title) scale.title.color = getCSS('--dim');
+        if(scale.grid && scale.grid.display !== false) scale.grid.color = 'rgba(106,143,173,0.12)';
+      });
+    }
+    chart.update();
+  });
+}
+
+async function queryAPI(query, mode, topK) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, mode: mode.toLowerCase(), top_k: topK })
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
+}
+
+function updateSliderFill(input){
+  const pct = ((input.value - input.min) / (input.max - input.min) * 100).toFixed(1);
+  input.style.setProperty('--pct', pct + '%');
+}
+
+function escapeHTML(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function renderAnswerHTML(answer){
+  const parts = String(answer || '').split(/`([^`]+)`/g);
+  return parts.map((part, idx) => {
+    if(idx % 2 === 1) return `<div class="answer-code">${escapeHTML(part)}</div>`;
+    return escapeHTML(part).split(/\n{2,}/).map(chunk => `<p>${chunk.replace(/\n/g,'<br>')}</p>`).join('');
+  }).join('');
+}
+
+function truncateFile(name){
+  return name.length > 48 ? name.slice(0,45) + '...' : name;
+}
+
+function prettifyCategory(value){
+  return String(value || 'unknown').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function renderDefaultState(){
+  document.getElementById('resultRoot').innerHTML = '<div class="placeholder">Your answer will appear here.</div>';
+}
+
+function renderLoading(){
+  document.getElementById('resultRoot').innerHTML = `
+    <div class="answer-card">
+      <div class="result-tag">Answer</div>
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line"></div>
+    </div>`;
+}
+
+function renderError(){
+  document.getElementById('resultRoot').innerHTML = '<div class="caveat">Could not reach the API. Configure the endpoint URL before deploying.</div>';
+}
+
+function renderResponse(data){
+  const citations = Array.isArray(data.citations) ? data.citations : [];
+  const citationItems = citations.map(item => {
+    const fileName = truncateFile(String(item).split(/[\\/]/).pop());
+    return `<span class="citation-pill" title="${escapeHTML(String(item))}">${escapeHTML(fileName)}</span>`;
+  }).join('');
+
+  document.getElementById('resultRoot').innerHTML = `
+    <div class="answer-card">
+      <div class="result-tag">Answer</div>
+      <div class="answer-text">${renderAnswerHTML(data.answer || '')}</div>
+    </div>
+    <div class="citation-card">
+      <button class="citation-header" id="citationToggle" type="button" aria-expanded="true">
+        <span class="citation-title">Sources</span>
+        <span class="citation-meta">
+          <span class="citation-badge">${citations.length}</span>
+          <span class="citation-chevron" id="citationChevron">▴</span>
+        </span>
+      </button>
+      <div class="citation-list" id="citationList">${citationItems || '<span class="citation-pill">No citations returned</span>'}</div>
+    </div>
+    <div class="debug-card">
+      <div class="big-stats">
+        <div class="big-stat"><div class="num" style="color:var(--blue)">${escapeHTML(prettifyCategory(data.task_category))}</div><div class="lbl">Category</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(data.graph_fact_count ?? 0))}</div><div class="lbl">Graph facts</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(data.chunk_count ?? 0))}</div><div class="lbl">Chunks</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--gold)">${escapeHTML(String(data.latency_ms ?? 0))}ms</div><div class="lbl">Latency</div></div>
+      </div>
+    </div>`;
+
+  document.getElementById('citationToggle').addEventListener('click', () => {
+    const list = document.getElementById('citationList');
+    const btn = document.getElementById('citationToggle');
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!expanded));
+    list.style.display = expanded ? 'none' : 'flex';
+    document.getElementById('citationChevron').textContent = expanded ? '▾' : '▴';
+  });
+}
+
+async function submitQuery(forcedQuery){
+  const queryInput = document.getElementById('queryInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const activeMode = document.querySelector('#modeButtons .model-btn.active').dataset.mode;
+  const topK = Number(document.getElementById('topK').value);
+  const query = (forcedQuery || queryInput.value).trim();
+  if(!query){
+    renderDefaultState();
+    return;
+  }
+  queryInput.value = query;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Querying…';
+  renderLoading();
+  try {
+    const data = await queryAPI(query, activeMode, topK);
+    renderResponse(data);
+  } catch (err) {
+    renderError();
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Ask Copilot →';
+  }
+}
+
+function initLiveDemo(){
+  const topK = document.getElementById('topK');
+  updateSliderFill(topK);
+  topK.addEventListener('input', () => {
+    document.getElementById('topKVal').textContent = topK.value;
+    updateSliderFill(topK);
+  });
+
+  document.querySelectorAll('#modeButtons .model-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#modeButtons .model-btn').forEach(other => other.classList.toggle('active', other === btn));
+    });
+  });
+
+  document.getElementById('queryForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    await submitQuery();
+  });
+
+  document.querySelectorAll('.seed-pill').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.getElementById('queryInput').value = btn.textContent.trim();
+      await submitQuery(btn.textContent.trim());
+    });
+  });
+}
+
+function initDropdowns(){
+  document.querySelectorAll('.hdr-dropdown').forEach(dd => {
+    dd.querySelector('.hdr-dropdown-trigger').addEventListener('click', e => {
+      e.stopPropagation();
+      const wasOpen = dd.classList.contains('open');
+      document.querySelectorAll('.hdr-dropdown.open').forEach(d => d.classList.remove('open'));
+      if(!wasOpen) dd.classList.add('open');
+    });
+    dd.querySelector('.hdr-dropdown-panel').addEventListener('click', e => e.stopPropagation());
+  });
+  document.addEventListener('click', () => document.querySelectorAll('.hdr-dropdown.open').forEach(d => d.classList.remove('open')));
+}
+
+function initTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+}
+
+function initCases(){
+  document.querySelectorAll('.case-card').forEach(card => {
+    card.querySelector('.case-toggle').addEventListener('click', () => card.classList.toggle('open'));
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if(localStorage.getItem(THEME_KEY) === 'light') document.body.classList.add('light');
+  setThemeLabel();
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  initTabs();
+  initDropdowns();
+  initLiveDemo();
+  initCases();
+  initCharts();
+  applyChartTheme();
+  renderDefaultState();
+});
+</script>
+</body>
+</html>
