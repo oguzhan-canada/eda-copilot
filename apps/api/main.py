@@ -186,6 +186,8 @@ async def query_stream(request: Request, body: QueryRequest):
 
         # Stream Claude answer token by token
         client = anthropic.Anthropic(api_key=synthesizer.api_key)
+        input_tokens = 0
+        output_tokens = 0
         with client.messages.stream(
             model=synthesizer.model,
             max_tokens=1024,
@@ -195,16 +197,20 @@ async def query_stream(request: Request, body: QueryRequest):
             for text in stream.text_stream:
                 chunk = {"type": "token", "text": text}
                 yield f"data: {json_lib.dumps(chunk)}\n\n"
+            final = stream.get_final_message()
+            input_tokens = final.usage.input_tokens
+            output_tokens = final.usage.output_tokens
 
-        # Final chunk: latency
+        # Final chunk: latency + token usage
         latency_ms = int((time.time() - t0) * 1000)
         logger.info(
-            "QUERY | endpoint=/query/stream | latency=%dms | category=%s | graph_facts=%d | chunks=%d | ip=%s",
-            latency_ms, result.get("task_category", "unknown"),
+            "QUERY | endpoint=/query/stream | latency=%dms | tokens_in=%d | tokens_out=%d | category=%s | graph_facts=%d | chunks=%d | ip=%s",
+            latency_ms, input_tokens, output_tokens,
+            result.get("task_category", "unknown"),
             len(result.get("graph_facts", [])), len(result.get("chunks", [])),
             get_remote_address(request),
         )
-        done = {"type": "done", "latency_ms": latency_ms}
+        done = {"type": "done", "latency_ms": latency_ms, "input_tokens": input_tokens, "output_tokens": output_tokens}
         yield f"data: {json_lib.dumps(done)}\n\n"
 
     return StreamingResponse(

@@ -984,6 +984,8 @@ function renderStreamStart(metadata) {
         <div class="big-stat"><div class="num" style="color:var(--blue)">${escapeHTML(prettifyCategory(metadata.task_category))}</div><div class="lbl">Category</div></div>
         <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.graph_fact_count ?? 0))}</div><div class="lbl">Graph facts</div></div>
         <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.chunk_count ?? 0))}</div><div class="lbl">Chunks</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--dim)" id="streamTokensIn">…</div><div class="lbl">Tokens in</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--dim)" id="streamTokensOut">…</div><div class="lbl">Tokens out</div></div>
         <div class="big-stat"><div class="num" style="color:var(--gold)" id="streamLatency">…</div><div class="lbl">Latency</div></div>
       </div>
     </div>`;
@@ -1072,6 +1074,10 @@ async function submitQuery(forcedQuery){
           if (el) el.innerHTML = renderAnswerHTML(answerText);
           const latEl = document.getElementById('streamLatency');
           if (latEl) latEl.textContent = (payload.latency_ms / 1000).toFixed(1) + 's';
+          const tiEl = document.getElementById('streamTokensIn');
+          if (tiEl) tiEl.textContent = (payload.input_tokens ?? 0).toLocaleString();
+          const toEl = document.getElementById('streamTokensOut');
+          if (toEl) toEl.textContent = (payload.output_tokens ?? 0).toLocaleString();
         }
       }
     }
