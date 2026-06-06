@@ -16,7 +16,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -32,8 +32,22 @@ from apps.api.services.synthesizer import Synthesizer
 class QueryRequest(BaseModel):
     query: str
     top_k: int = 5
-    search_mode: str = "hybrid"  # "hybrid", "dense", "sparse"
-    synthesize: bool = True  # False = retrieval only (no Claude call)
+    search_mode: str = "hybrid"
+    synthesize: bool = True
+
+    @field_validator("query")
+    @classmethod
+    def cap_query_length(cls, v: str) -> str:
+        if len(v.strip()) == 0:
+            raise ValueError("Query cannot be empty")
+        if len(v) > 500:
+            raise ValueError("Query too long — max 500 characters")
+        return v.strip()
+
+    @field_validator("top_k")
+    @classmethod
+    def cap_top_k(cls, v: int) -> int:
+        return max(1, min(v, 10))
 
 
 class Citation(BaseModel):
