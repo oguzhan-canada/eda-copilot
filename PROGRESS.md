@@ -1140,14 +1140,16 @@ Evaluated full system against EDABench (120 items, 5 categories):
 
 ### Final Budget
 
-| Component | Budgeted | Actual | Status |
+Original project budget: **$2,685**. Actual spend: **$240** (91% cost reduction).
+
+| Component | Original Budget | Actual | Status |
 |---|---|---|---|
-| Phase 1 (corpus + extract) | ~$200 | ~$224 | ✅ Complete |
-| Phase 2 (graph) | ~$50 | $0 (Aura free tier) | ✅ Complete |
-| Phase 3 (retrieval + fine-tuning) | ~$450 | ~$10 | ✅ Complete |
-| Phase 4 (EDABench + eval) | ~$10 | ~$5 | ✅ Complete |
+| Phase 1 (corpus + extract) | ~$500 | ~$224 | ✅ Complete |
+| Phase 2 (graph) | ~$200 | $0 (Aura free tier) | ✅ Complete |
+| Phase 3 (retrieval + fine-tuning) | ~$1,500 | ~$10 | ✅ Complete |
+| Phase 4 (EDABench + eval) | ~$485 | ~$5 | ✅ Complete |
 | Deployment (VPS) | — | $3/mo | ✅ Running |
-| **Total** | **~$710** | **~$240** | **66% under budget** |
+| **Total** | **~$2,685** | **~$240** | **91% under budget** |
 
 ### Project Complete
 

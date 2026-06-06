@@ -119,7 +119,7 @@ The system is deployed and publicly accessible:
 | Mean answer quality (EDABench) | 0.482 |
 | Graph hit rate | 67.5% |
 | Per-query cost | ~$0.01 |
-| Total build cost | **$240** (66% under budget) |
+| Total build cost | **$240** (91% under $2,685 original budget) |
 
 ## Reused Assets from MLCAD Project
 
@@ -136,7 +136,7 @@ The system is deployed and publicly accessible:
 
 | Item | Budgeted | Actual |
 |------|----------|--------|
-| Total build (16 weeks) | ~$700 | **$240** |
+| Total build (16 weeks) | ~$2,685 | **$240** |
 | Monthly recurring (VPS) | — | ~$3/mo |
 | Per-query API cost | — | ~$0.01 |
 

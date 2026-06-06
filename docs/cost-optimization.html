@@ -269,14 +269,14 @@ td.muted{color:var(--dim)}
       <h1>Cost Optimization in Production AI Systems: Building a Domain-Specific GraphRAG for $240</h1>
       <p class="subtitle">Techniques and Results from the EDA Copilot Project</p>
       <p class="author">Oguzhan Tekin · Machine Learning and AI Researcher · Toronto, Canada</p>
-      <p>This paper documents the concrete techniques that let EDA Copilot ship a live, domain-specific GraphRAG system at a total build cost of <strong>$240</strong>, compared with a <strong>$700</strong> budget. The central result is practical: disciplined systems design made it possible to operate the system for roughly <strong>one cent per question</strong> while still outperforming a standalone large language model by <strong>21.9×</strong> on EDABench.</p>
+      <p>This paper documents the concrete techniques that let EDA Copilot ship a live, domain-specific GraphRAG system at a total build cost of <strong>$240</strong>, compared with an original <strong>$2,685</strong> budget. The central result is practical: disciplined systems design made it possible to operate the system for roughly <strong>one cent per question</strong> while still outperforming a standalone large language model by <strong>21.9×</strong> on EDABench.</p>
       <div class="hero-actions">
         <a class="pill" href="index.html">Main dashboard</a>
         <a class="pill" href="architecture-guide.html">Architecture guide</a>
       </div>
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num">$240</div><div class="stat-label">Total build cost</div></div>
-        <div class="stat-card"><div class="stat-num">66%</div><div class="stat-label">Under budget</div></div>
+        <div class="stat-card"><div class="stat-num">91%</div><div class="stat-label">Under budget</div></div>
         <div class="stat-card"><div class="stat-num">~$0.01</div><div class="stat-label">Per-query cost</div></div>
         <div class="stat-card"><div class="stat-num">$6/mo</div><div class="stat-label">At 10 queries/day</div></div>
       </div>
@@ -285,7 +285,7 @@ td.muted{color:var(--dim)}
     <section class="section-card" id="abstract">
       <div class="kicker">Abstract</div>
       <h2>Abstract</h2>
-      <p>EDA Copilot was built as a production-grade, domain-specific AI assistant for electronic design automation using a GraphRAG architecture: a knowledge graph for structured reasoning, a vector store for semantic retrieval, and a synthesis layer for final answer generation. The project finished at <strong>$240 total</strong> against a planned budget of <strong>$700</strong>, placing the system <strong>66% under budget</strong>.</p>
+      <p>EDA Copilot was built as a production-grade, domain-specific AI assistant for electronic design automation using a GraphRAG architecture: a knowledge graph for structured reasoning, a vector store for semantic retrieval, and a synthesis layer for final answer generation. The project finished at <strong>$240 total</strong> against an original planned budget of <strong>$2,685</strong>, placing the system <strong>91% under budget</strong>.</p>
       <p>The final operating profile is equally important. Queries cost approximately <strong>$0.01 each</strong>, monthly infrastructure is roughly <strong>$3</strong>, and a conservative light-usage API budget is about <strong>$5 per month</strong> at 10 queries per day. The key insight is that strategic use of free tiers, tiered processing, selective embedding, discounted batch processing, and server-sent event streaming eliminated <strong>more than $460</strong> in planned costs without degrading answer quality.</p>
       <div class="callout"><strong>Key insight:</strong> cost optimization worked because expensive operations were treated as a scarce resource. Free infrastructure handled state, cheap rules handled structure, and the LLM was reserved for the small fraction of work that genuinely required it.</div>
     </section>
@@ -301,7 +301,7 @@ td.muted{color:var(--dim)}
     <section class="section-card" id="budget">
       <div class="kicker">2. Budget Overview</div>
       <h2>Budgeted versus actual spend</h2>
-      <p>The project budget was planned conservatively at <strong>$710</strong>. Actual build cost landed at <strong>$240</strong>, for a total savings of <strong>$470</strong>. One phase ran slightly over plan, but the overall portfolio of cost optimizations more than offset it.</p>
+      <p>The original project budget was planned at <strong>$2,685</strong>. Actual build cost landed at <strong>$240</strong>, for a total savings of <strong>$2,445</strong> (91% reduction). One phase ran slightly over its revised estimate, but the overall portfolio of cost optimizations more than offset it.</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -314,15 +314,14 @@ td.muted{color:var(--dim)}
             </tr>
           </thead>
           <tbody>
-            <tr><td>Corpus + Extraction (Phase 1)</td><td>$200</td><td>$224</td><td>-$24 (over)</td><td class="muted">Batch API pricing</td></tr>
-            <tr><td>Knowledge Graph (Phase 2)</td><td>$50</td><td>$0</td><td>$50</td><td class="muted">Neo4j Aura free tier</td></tr>
-            <tr><td>Vector Store (Phase 3.1)</td><td>$420</td><td>$0.26</td><td>$419.74</td><td class="muted">Voyage AI free tier</td></tr>
-            <tr><td>Integration (Phase 3.2)</td><td>$5</td><td>$0.01</td><td>$4.99</td><td class="muted">Local development</td></tr>
-            <tr><td>Fine-tuning (Phase 3.3)</td><td>$25</td><td>$9.09</td><td>$15.91</td><td class="muted">g4dn.xlarge spot pricing</td></tr>
-            <tr><td>EDABench (Phase 4.1)</td><td>$5</td><td>$1.50</td><td>$3.50</td><td class="muted">Batch API</td></tr>
-            <tr><td>System Eval (Phase 4.2)</td><td>$5</td><td>$3.00</td><td>$2.00</td><td class="muted">Batch API</td></tr>
+            <tr><td>Corpus + Extraction (Phase 1)</td><td>$500</td><td>$224</td><td>$276</td><td class="muted">Batch API pricing (50% off)</td></tr>
+            <tr><td>Knowledge Graph (Phase 2)</td><td>$200</td><td>$0</td><td>$200</td><td class="muted">Neo4j Aura free tier</td></tr>
+            <tr><td>Vector Store + Embeddings (Phase 3.1)</td><td>$800</td><td>$0.26</td><td>$799.74</td><td class="muted">Voyage AI free tier</td></tr>
+            <tr><td>RAG Integration (Phase 3.2)</td><td>$200</td><td>$0.01</td><td>$199.99</td><td class="muted">Local development</td></tr>
+            <tr><td>Fine-tuning (Phase 3.3)</td><td>$500</td><td>$9.09</td><td>$490.91</td><td class="muted">QLoRA on g4dn.xlarge</td></tr>
+            <tr><td>Evaluation + Benchmark (Phase 4)</td><td>$485</td><td>$4.50</td><td>$480.50</td><td class="muted">Batch API pricing</td></tr>
             <tr><td>Deployment</td><td>—</td><td>$3/mo</td><td>—</td><td class="muted">Budget VPS</td></tr>
-            <tr class="highlight-row"><td><strong>Total</strong></td><td><strong>$710</strong></td><td><strong>$240</strong></td><td><strong>$470 saved</strong></td><td><strong>Disciplined system design</strong></td></tr>
+            <tr class="highlight-row"><td><strong>Total</strong></td><td><strong>$2,685</strong></td><td><strong>$240</strong></td><td><strong>$2,445 saved</strong></td><td><strong>91% cost reduction</strong></td></tr>
           </tbody>
         </table>
       </div>
