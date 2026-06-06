@@ -11,8 +11,10 @@ Usage:
 import os
 import time
 import logging
+import sqlite3
 from contextlib import asynccontextmanager
 from typing import Optional
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -88,6 +90,47 @@ limiter = Limiter(key_func=get_real_ip)
 logger = logging.getLogger("eda-copilot")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
+# ── Query log (SQLite) ───────────────────────────────────────────────────
+
+QUERY_LOG_PATH = Path(os.environ.get("QUERY_LOG_PATH", "data/query_log.db"))
+
+def _init_query_log():
+    QUERY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(QUERY_LOG_PATH))
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS queries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT (datetime('now')),
+            ip TEXT,
+            endpoint TEXT,
+            query TEXT,
+            category TEXT,
+            graph_facts INTEGER DEFAULT 0,
+            chunks INTEGER DEFAULT 0,
+            tokens_in INTEGER DEFAULT 0,
+            tokens_out INTEGER DEFAULT 0,
+            latency_ms INTEGER DEFAULT 0
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def log_query(*, ip: str, endpoint: str, query: str, category: str,
+              graph_facts: int = 0, chunks: int = 0,
+              tokens_in: int = 0, tokens_out: int = 0, latency_ms: int = 0):
+    try:
+        conn = sqlite3.connect(str(QUERY_LOG_PATH))
+        conn.execute(
+            "INSERT INTO queries (ip, endpoint, query, category, graph_facts, chunks, tokens_in, tokens_out, latency_ms) VALUES (?,?,?,?,?,?,?,?,?)",
+            (ip, endpoint, query, category, graph_facts, chunks, tokens_in, tokens_out, latency_ms),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning("Failed to log query: %s", e)
+
+_init_query_log()
+
 
 # ── App lifecycle ────────────────────────────────────────────────────────
 
@@ -146,11 +189,21 @@ async def query(request: Request, body: QueryRequest):
 
     latency = (time.time() - start) * 1000
     usage = answer.get("usage", {})
+    client_ip = get_real_ip(request)
     logger.info(
         "QUERY | endpoint=/query | tokens_in=%s | tokens_out=%s | latency=%dms | category=%s | ip=%s",
         usage.get("input_tokens", "?"), usage.get("output_tokens", "?"),
         int(latency), result.get("task_category", "unknown"),
-        get_real_ip(request),
+        client_ip,
+    )
+    log_query(
+        ip=client_ip, endpoint="/query", query=body.query,
+        category=result.get("task_category", "unknown"),
+        graph_facts=len(result.get("graph_facts", [])),
+        chunks=len(result.get("chunks", [])),
+        tokens_in=usage.get("input_tokens", 0) or 0,
+        tokens_out=usage.get("output_tokens", 0) or 0,
+        latency_ms=int(latency),
     )
 
     return QueryResponse(
@@ -224,12 +277,21 @@ async def query_stream(request: Request, body: QueryRequest):
 
         # Final chunk: latency + token usage
         latency_ms = int((time.time() - t0) * 1000)
+        client_ip = get_real_ip(request)
         logger.info(
             "QUERY | endpoint=/query/stream | latency=%dms | tokens_in=%d | tokens_out=%d | category=%s | graph_facts=%d | chunks=%d | ip=%s",
             latency_ms, input_tokens, output_tokens,
             result.get("task_category", "unknown"),
             len(result.get("graph_facts", [])), len(result.get("chunks", [])),
-            get_real_ip(request),
+            client_ip,
+        )
+        log_query(
+            ip=client_ip, endpoint="/query/stream", query=body.query,
+            category=result.get("task_category", "unknown"),
+            graph_facts=len(result.get("graph_facts", [])),
+            chunks=len(result.get("chunks", [])),
+            tokens_in=input_tokens, tokens_out=output_tokens,
+            latency_ms=latency_ms,
         )
         done = {"type": "done", "latency_ms": latency_ms, "input_tokens": input_tokens, "output_tokens": output_tokens}
         yield f"data: {json_lib.dumps(done)}\n\n"
