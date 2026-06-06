@@ -139,6 +139,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .skeleton-line{background:var(--navy3);border-radius:4px;height:16px;margin-bottom:8px;animation:shimmerPulse 1.5s ease-in-out infinite}
 .skeleton-line:nth-child(2){width:92%}
 .skeleton-line:nth-child(3){width:78%}
+.streaming-cursor{color:var(--teal);animation:blink 0.8s step-end infinite}
+@keyframes blink{50%{opacity:0}}
 @keyframes shimmerPulse{0%{opacity:.4}50%{opacity:.8}100%{opacity:.4}}
 .results-grid,.summary-grid,.case-grid{display:flex;gap:20px;flex-wrap:wrap}
 .results-grid>.chart-box,.summary-grid>.chart-box,.case-grid>.case-card{flex:1 1 320px}
@@ -714,6 +716,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
 
 <script>
 const API_URL = 'https://api.oguzhantekin.com/query';
+const STREAM_URL = 'https://api.oguzhantekin.com/query/stream';
 const THEME_KEY = 'eda-copilot-theme';
 let qualityByCategoryChartInst, graphHitChartInst, difficultyChartInst, costChartInst;
 
@@ -943,6 +946,47 @@ function renderResponse(data){
   });
 }
 
+function renderStreaming(metadata) {
+  const citations = Array.isArray(metadata.citations) ? metadata.citations : [];
+  const citationItems = citations.map(item => {
+    const fileName = truncateFile(String(item).split(/[\\/]/).pop());
+    return `<span class="citation-pill" title="${escapeHTML(String(item))}">${escapeHTML(fileName)}</span>`;
+  }).join('');
+
+  document.getElementById('resultRoot').innerHTML = `
+    <div class="answer-card">
+      <div class="result-tag">Answer</div>
+      <div class="answer-text" id="streamText"><span class="streaming-cursor">▊</span></div>
+    </div>
+    <div class="citation-card">
+      <button class="citation-header" id="citationToggle" type="button" aria-expanded="true">
+        <span class="citation-title">Sources</span>
+        <span class="citation-meta">
+          <span class="citation-badge">${citations.length}</span>
+          <span class="citation-chevron" id="citationChevron">▴</span>
+        </span>
+      </button>
+      <div class="citation-list" id="citationList">${citationItems || '<span class="citation-pill">No citations returned</span>'}</div>
+    </div>
+    <div class="debug-card">
+      <div class="big-stats">
+        <div class="big-stat"><div class="num" style="color:var(--blue)">${escapeHTML(prettifyCategory(metadata.task_category))}</div><div class="lbl">Category</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.graph_facts_count ?? 0))}</div><div class="lbl">Graph facts</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.chunks_count ?? 0))}</div><div class="lbl">Chunks</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--gold)" id="streamLatency">…</div><div class="lbl">Latency</div></div>
+      </div>
+    </div>`;
+
+  document.getElementById('citationToggle').addEventListener('click', () => {
+    const list = document.getElementById('citationList');
+    const btn = document.getElementById('citationToggle');
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!expanded));
+    list.style.display = expanded ? 'none' : 'flex';
+    document.getElementById('citationChevron').textContent = expanded ? '▾' : '▴';
+  });
+}
+
 async function submitQuery(forcedQuery){
   const queryInput = document.getElementById('queryInput');
   const submitBtn = document.getElementById('submitBtn');
@@ -957,9 +1001,48 @@ async function submitQuery(forcedQuery){
   submitBtn.disabled = true;
   submitBtn.textContent = 'Querying…';
   renderLoading();
+  const startTime = performance.now();
   try {
-    const data = await queryAPI(query, activeMode, topK);
-    renderResponse(data);
+    const res = await fetch(STREAM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, search_mode: activeMode.toLowerCase(), top_k: topK })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let metadataParsed = false;
+    let metadata = {};
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      if (!metadataParsed) {
+        const newlineIdx = chunk.indexOf('\n');
+        if (newlineIdx !== -1) {
+          try {
+            metadata = JSON.parse(chunk.slice(0, newlineIdx));
+          } catch(e) { metadata = {}; }
+          metadataParsed = true;
+          renderStreaming(metadata);
+          const textAfter = chunk.slice(newlineIdx + 1);
+          if (textAfter) {
+            fullText += textAfter;
+            document.getElementById('streamText').innerHTML = renderAnswerHTML(fullText) + '<span class="streaming-cursor">▊</span>';
+          }
+          continue;
+        }
+      }
+      fullText += chunk;
+      const el = document.getElementById('streamText');
+      if (el) el.innerHTML = renderAnswerHTML(fullText) + '<span class="streaming-cursor">▊</span>';
+    }
+    const el = document.getElementById('streamText');
+    if (el) el.innerHTML = renderAnswerHTML(fullText);
+    const latency = Math.round(performance.now() - startTime);
+    const latEl = document.getElementById('streamLatency');
+    if (latEl) latEl.textContent = latency + 'ms';
   } catch (err) {
     renderError();
   } finally {

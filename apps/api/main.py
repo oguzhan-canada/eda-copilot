@@ -14,7 +14,9 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import anthropic
 
 from apps.api.services.fusion_retriever import FusionRetriever
 from apps.api.services.synthesizer import Synthesizer
@@ -120,6 +122,49 @@ async def query(request: QueryRequest):
         usage=answer.get("usage", {}),
         latency_ms=round(latency, 1),
     )
+
+
+@app.post("/query/stream")
+async def query_stream(request: QueryRequest):
+    """Stream an EDA answer — words appear as Claude generates them."""
+    if not retriever or not synthesizer:
+        raise HTTPException(status_code=503, detail="Services not initialized")
+
+    result = retriever.retrieve(
+        query=request.query,
+        top_k=request.top_k,
+        search_mode=request.search_mode,
+    )
+
+    context = synthesizer._format_context(result)
+    max_chars = 6000 * 4
+    if len(context) > max_chars:
+        context = context[:max_chars] + "\n\n[Context truncated for length]"
+
+    user_message = f"## Context\n\n{context}\n\n## Query\n\n{request.query}\n\nRespond with a clear, detailed answer. Do NOT use JSON format — write a natural language answer. Cite source files inline."
+
+    import json as _json
+    metadata = {
+        "task_category": result.get("task_category", "unknown"),
+        "graph_facts_count": len(result.get("graph_facts", [])),
+        "chunks_count": len(result.get("chunks", [])),
+        "entities_found": result.get("entities_found", []),
+        "citations": [c.get("source_file", "") for c in result.get("chunks", []) if c.get("source_file")],
+    }
+
+    async def generate():
+        yield _json.dumps(metadata) + "\n"
+        client = anthropic.Anthropic(api_key=synthesizer.api_key)
+        with client.messages.stream(
+            model=synthesizer.model,
+            max_tokens=1024,
+            system="You are an EDA copilot. Answer using ONLY the provided context. Cite source files inline. For errors: Root Cause, Evidence, Fix, Caveats. State version info explicitly.",
+            messages=[{"role": "user", "content": user_message}],
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+
+    return StreamingResponse(generate(), media_type="text/plain")
 
 
 @app.get("/health", response_model=HealthResponse)
