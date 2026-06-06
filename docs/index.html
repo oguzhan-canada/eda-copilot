@@ -365,7 +365,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
     <div class="wrap section">
       <h2>Try the EDA Copilot</h2>
       <p>Live queries against the full GraphRAG pipeline. Graph + vector + reranker + Claude synthesis.</p>
-      <div class="caveat" style="margin-top:16px">⚠ API not yet deployed. Queries will fail until the endpoint URL is configured in the script block at the bottom of this file. Seed queries are pre-loaded and ready for when the API is live.</div>
+      <div class="success-note" style="margin-top:16px">✅ Live API at <code>api.oguzhantekin.com</code> — hybrid retrieval across knowledge graph, vector index, reranker, and Claude synthesis. Average latency ~13s.</div>
 
       <div class="explorer">
         <div class="ctrl-panel">
@@ -709,7 +709,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
 </footer>
 
 <script>
-const API_URL = 'https://YOUR_API_URL/query'; // replace before deploy
+const API_URL = 'https://api.oguzhantekin.com/query';
 const THEME_KEY = 'eda-copilot-theme';
 let qualityByCategoryChartInst, graphHitChartInst, difficultyChartInst, costChartInst;
 
