@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# terraform.tfvars.example — Copy to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars — it is in .gitignore
+# ─────────────────────────────────────────────────────────────────────────────
+
+aws_region       = "us-east-1"
+project_name     = "eda-kg"
+key_pair_name    = "your-key-pair-name"    # REQUIRED: existing EC2 key pair
+allowed_ssh_cidr = "203.0.113.0/32"        # REQUIRED: your IP address /32
+
+# ── Instance types (ordered by preference for Spot capacity) ──────────────────
+cpu_instance_types = ["c6i.4xlarge", "c6i.8xlarge", "c6a.4xlarge"]
+gpu_instance_types = ["g5.2xlarge", "g4dn.xlarge"]
+
+# ── High-memory designs — swerv_wrapper requires 64 GB (OOMs on 32 GB) ───────
+high_memory_designs        = ["swerv_wrapper"]
+high_memory_instance_types = ["r6i.2xlarge", "r6a.2xlarge"]
+
+# ── Storage ───────────────────────────────────────────────────────────────────
+cpu_ebs_size_gb = 200    # Corpus + ORFS runs + manifests
+gpu_ebs_size_gb = 100    # Models + results
+
+# ── Spot pricing ──────────────────────────────────────────────────────────────
+spot_max_price_cpu = "0.40"
+spot_max_price_gpu = "0.45"
+
+# ── S3 bucket (leave empty for auto-generated name) ──────────────────────────
+# s3_bucket_name = "eda-kg-artifacts-YOUR_ACCOUNT_ID"
+
+# ── Stage control — toggle which instance to launch ──────────────────────────
+launch_cpu = false    # Set true for Phase 1 corpus + ORFS runs
+launch_gpu = false    # Set true for Phase 3 LoRA training

@@ -1,0 +1,102 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Corpus Sources — Component 1.1 ingestion targets
+# ─────────────────────────────────────────────────────────────────────────────
+# Each source: id, tier, type, url, method, license, tool metadata.
+# The fetch script reads this file to know what to download.
+
+sources:
+
+  - id: openroad_docs
+    tier: 2
+    type: github_repo
+    url: https://github.com/The-OpenROAD-Project/OpenROAD
+    fetch_method: git_clone
+    paths:
+      - docs/
+      - src/
+    license: BSD-3-Clause
+    tool_name: OpenROAD
+    tool_version: "26Q1"
+    version_tag: OpenROAD_26Q1
+    notes: "Primary open-source RTL-to-GDSII tool. Docs + error strings."
+
+  - id: sky130_pdk
+    tier: 2
+    type: github_repo
+    url: https://github.com/google/skywater-pdk
+    fetch_method: git_clone
+    paths:
+      - libraries/
+      - docs/
+    license: Apache-2.0
+    tool_name: SKY130
+    tool_version: "1.0.0"
+    version_tag: SKY130_v1
+    notes: "130nm open PDK. Rule decks, Liberty models, LEF/DEF."
+
+  - id: openlane
+    tier: 1
+    type: github_repo
+    url: https://github.com/The-OpenROAD-Project/OpenLane
+    fetch_method: git_clone
+    paths:
+      - scripts/
+      - docs/
+      - configuration/
+    license: Apache-2.0
+    tool_name: OpenLane
+    tool_version: "2.x"
+    version_tag: OpenLane_v2
+    notes: "RTL-to-GDSII flow scripts. Tcl, Python, config files."
+
+  - id: epfl_benchmarks
+    tier: 1
+    type: github_repo
+    url: https://github.com/lsils/benchmarks
+    fetch_method: git_clone
+    paths:
+      - arithmetic/
+      - random_control/
+    license: MIT
+    tool_name: EPFL
+    tool_version: "2023"
+    version_tag: EPFL_2023
+    notes: "23 combinational benchmark circuits. Verilog + BLIF + AIGER."
+
+  - id: opensta_docs
+    tier: 2
+    type: github_repo
+    url: https://github.com/The-OpenROAD-Project/OpenSTA
+    fetch_method: git_clone
+    paths:
+      - doc/
+      - include/
+    license: GPL-3.0
+    tool_name: OpenSTA
+    tool_version: "2.6"
+    version_tag: OpenSTA_v2_6
+    notes: "Static timing analyzer. Reads Liberty, SDC, SDF, SPEF."
+
+  - id: yosys_docs
+    tier: 1
+    type: github_repo
+    url: https://github.com/YosysHQ/yosys
+    fetch_method: git_clone
+    paths:
+      - docs/
+      - techlibs/
+    license: ISC
+    tool_name: Yosys
+    tool_version: "0.36"
+    version_tag: Yosys_v0_36
+    notes: "RTL synthesis framework. Tcl commands, pass semantics."
+
+dedup:
+  threshold: 0.90
+  algorithm: minhash
+  num_perm: 128
+
+output:
+  staging_dir: data/corpus/staging
+  raw_docs_dir: data/corpus/raw_docs
+  manifest_path: data/manifests/artifacts_manifest.parquet

@@ -1,0 +1,13 @@
+# Requirements for QLoRA training on GPU instance
+# Install: pip install -r requirements-train.txt
+
+torch>=2.1
+transformers>=4.40
+peft>=0.10
+trl>=0.8
+bitsandbytes>=0.43
+datasets
+accelerate
+sentencepiece
+protobuf
+flash-attn  # Requires CUDA toolkit

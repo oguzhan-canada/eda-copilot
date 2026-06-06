@@ -1,65 +1,112 @@
-# EDA Copilot
+# LLM-Powered Knowledge Graphs for EDA
 
-**LLM-Powered Knowledge Graph for Electronic Design Automation**
+**A version-aware EDA copilot combining corpus ingestion, Neo4j knowledge graphs, hybrid GraphRAG retrieval, QLoRA domain adaptation, and EDABench evaluation.**
 
-A GraphRAG copilot for chip design engineers that combines a knowledge graph, vector retrieval, and LoRA fine-tuning to answer EDA questions with version-aware, structured reasoning.
+Oguzhan Tekin · Independent Researcher · Toronto, Canada
 
-🔗 **[Live Dashboard](https://oguzhan-canada.github.io/eda-copilot/)** · 📄 **[Research Paper](paper/research_paper.pdf)** · 📊 **[PROGRESS.md](PROGRESS.md)**
+📄 [Research Paper](../research/final-research-paper.md) · 📋 [Implementation Plan](../research/technical-implementation-plan.md) · 📊 [Progress Trail](PROGRESS.md)
 
 ---
 
-## Key Results
+## Quick Start → Week 1
 
-| System | Answer Quality | Graph Hit % |
-|--------|---------------|-------------|
-| **Full GraphRAG** | **0.482** | **67.5%** |
-| LoRA-only | 0.431 | 0.0% |
-| Vector-only RAG | 0.202 | 0.0% |
-| Direct LLM | 0.022 | 0.0% |
+```bash
+# 1. Clone and set up
+cd ~/projects
+git clone <this-repo> llm-eda-kg
+cd llm-eda-kg
 
-- **21.9×** improvement over bare LLM
-- **139%** over vector-only search
-- **67.5%** graph-grounded answers
-- **$240** total build cost (10% of $2,685 original budget)
+# 2. Verify config
+python3 -c "import yaml; cfg=yaml.safe_load(open('configs/base.yaml')); print('OK:', cfg['project_name'], '/', len(cfg['designs']), 'designs')"
 
-## System Architecture
+# 3. Set up AWS (see infra/aws/terraform/terraform.tfvars.example)
+cp infra/aws/terraform/terraform.tfvars.example infra/aws/terraform/terraform.tfvars
+# Edit terraform.tfvars with your values
+cd infra/aws/terraform && terraform init && terraform plan
+```
 
-Six-component pipeline built over 16 weeks:
+---
 
-1. **Corpus** — 14,294 files, 252M tokens from 6 open-source EDA sources
-2. **Synthetic Q&A** — 13,024 pairs across 12 violation families, judge threshold ≥ 0.90
-3. **Knowledge Graph** — 18,037 nodes, 16,530 relationships in Neo4j, p50 2-hop latency 45ms
-4. **Vector Index** — 8,888 priority chunks via voyage-code-2 (1,536 dim) in Weaviate
-5. **Fusion Retrieval** — Parallel Neo4j + Weaviate search with ms-marco cross-encoder reranking
-6. **LoRA Adaptation** — Mistral-7B QLoRA 4-bit, 12.5× perplexity improvement, $9.09 training cost
+## Overview
 
-## EDABench
+An end-to-end system for building knowledge-driven EDA assistants that reason over chip design artifacts using structured knowledge graphs rather than flat text retrieval. Built on empirical foundations from the [Instrumented ML-Driven PPA Optimization](https://github.com/oguzhan-canada/instrumented-ml-ppa) project.
 
-A 120-item zero-contamination benchmark for EDA copilot evaluation:
-- 5 task categories: Error Diagnosis, RTL Q&A, Constraint Generation, DRC Rule Lookup, Cross-Tool Knowledge
-- 7 seed bugs from real OpenROAD runs (ED-001–005, ML-001–002)
-- KG-grounded ground truth for 33 items
+**Key capabilities:**
+- **4-tier corpus pipeline** — structured code, PDK artifacts, tool docs, synthetic Q&A
+- **Version-aware knowledge graph** — Neo4j ontology with 10 node types, 10 relation types, provenance tracking
+- **Hybrid GraphRAG retrieval** — dense + BM25 + graph subgraph expansion for multi-hop reasoning
+- **QLoRA domain adaptation** — Llama-3-8B fine-tuned for Verilog/SDC generation
+- **EDABench** — 900-sample benchmark with 6 verified seed samples from real ORFS experiments
 
-## Tech Stack
+## Repository Structure
 
-| Component | Technology |
-|-----------|------------|
-| Knowledge Graph | Neo4j Aura |
-| Vector Store | Weaviate Cloud |
-| Embeddings | voyage-code-2 (1,536 dim) |
-| Reranker | ms-marco-MiniLM-L-6-v2 |
-| Fine-tuned Model | Mistral-7B-Instruct-v0.3 + QLoRA |
-| Synthesis | Claude Sonnet API |
-| API | FastAPI (Python) |
+```
+├── apps/                    # API server and UI
+│   ├── api/                 # FastAPI backend
+│   │   ├── routers/         # Endpoint definitions
+│   │   └── services/        # Query router, GraphRAG, citations
+│   └── ui/                  # Gradio pilot interface
+│
+├── configs/                 # Central configuration
+│   ├── base.yaml            # Master config (paths, designs, services)
+│   ├── corpus_sources.yaml  # Tier 1-3 ingestion targets
+│   └── graph_schema.cypher  # Neo4j ontology + seed triples
+│
+├── data_contracts/          # Schema definitions
+│   └── manifest_schema.yaml # Artifact, ORFS run, and triple manifests
+│
+├── infra/                   # Infrastructure-as-Code
+│   ├── aws/terraform/       # EC2 spot + S3 (from MLCAD)
+│   ├── aws/docker/          # Container definitions
+│   ├── aws/scripts/         # Bootstrap and sync
+│   └── compose/             # Local dev docker-compose
+│
+├── pipeline/                # Data processing pipeline
+│   ├── collect/             # Corpus download and staging
+│   ├── synth_qa/            # Synthetic Q&A generation
+│   ├── orfs/                # ORFS execution (from MLCAD)
+│   ├── parse/               # Log/report parsing (from MLCAD)
+│   ├── graph/               # Triple extraction and KG loading
+│   ├── retrieve/            # Chunking, embedding, hybrid search
+│   ├── finetune/            # QLoRA training pipeline
+│   └── eval/                # EDABench construction and scoring
+│
+├── tests/                   # Test suite
+├── requirements/            # Split dependency files
+├── experiments/legacy/      # MLCAD reference scripts
+├── data/                    # Data artifacts (gitignored, synced via S3)
+├── models/                  # Trained models (gitignored)
+├── results/                 # Evaluation outputs (gitignored)
+└── vendor/                  # MLCAD source repo (gitignored)
+```
 
-## Related Projects
+## Phases
 
-- **[ML-Driven PPA Optimization](https://oguzhan-canada.github.io/instrumented-ml-ppa/findings.html)** — The prior MLCAD 2026 project that discovered the ORFS v3.0 → 26Q1 version divergence anchoring this system
-- **[AI Inference Cost Optimizer](https://oguzhan-canada.github.io/ai-inference-cost-optimizer/)** — FinOps decision tool using the same cost engineering principles
+| Phase | Weeks | Focus | Key Deliverable |
+|-------|-------|-------|-----------------|
+| **1** | 1–4 | Corpus & Data Pipeline | 59B-token staged corpus, 10K synthetic Q&A, 100+ ORFS runs |
+| **2** | 5–9 | Knowledge Graph | Neo4j ontology, 50K+ triples, quality validation |
+| **3** | 10–14 | RAG + Inference | Hybrid GraphRAG, QLoRA adapter, API server |
+| **4** | 15–18 | EDABench + Validation | 900-sample benchmark, system evaluation, pilot UI |
 
-## Author
+## Reused Assets from MLCAD Project
 
-**Oguzhan Tekin** — Machine Learning and Artificial Intelligence Researcher · Toronto
+| Asset | New Location | Role |
+|-------|-------------|------|
+| `run_openroad.py` | `pipeline/orfs/` | ORFS parallel execution |
+| `extract_timing.py` | `pipeline/parse/` | STA report parsing |
+| `parse_logs.py` | `pipeline/parse/` | Power/area extraction |
+| `fix_def_instances.py` | `pipeline/parse/` | DEF normalization |
+| `terraform/` | `infra/aws/terraform/` | AWS infrastructure |
+| 4 ORFS bugs | `data/edabench/seeds/` | EDABench gold standards |
 
-- GitHub: [oguzhan-canada](https://github.com/oguzhan-canada)
-- Email: oguzhantekin@gmail.com
+## Budget
+
+| Item | Cost |
+|------|------|
+| One-time build (18 weeks) | ~$2,700 |
+| Monthly recurring | ~$1,500/mo |
+
+## License
+
+TBD

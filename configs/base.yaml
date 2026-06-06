@@ -1,0 +1,122 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# LLM-Powered Knowledge Graphs for EDA — Central Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# All paths, service settings, and design parameters in one place.
+# Override any value via environment variable with prefix EDAKG_
+# e.g. EDAKG_DATA_ROOT=/mnt/data overrides data_root below.
+
+project_name: eda-kg
+aws_region: us-east-1
+s3_bucket: eda-kg-artifacts-${AWS_ACCOUNT_ID}
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+data_root: ./data
+corpus_dir: ${data_root}/corpus
+staging_dir: ${corpus_dir}/staging
+raw_docs_dir: ${corpus_dir}/raw_docs
+orfs_runs_dir: ${data_root}/orfs/runs
+manifests_dir: ${data_root}/manifests
+triples_dir: ${data_root}/triples
+bench_dir: ${data_root}/edabench
+models_dir: ./models
+results_dir: ./results
+
+# ── ORFS Versions ─────────────────────────────────────────────────────────────
+orfs_versions:
+  - name: orfs_v3_0
+    flow_dir: /opt/orfs/v3.0/flow
+    version_tag: ORFS_v3.0
+  - name: orfs_26q1
+    flow_dir: /opt/orfs/26Q1/flow
+    version_tag: ORFS_26Q1
+
+# ── Designs ───────────────────────────────────────────────────────────────────
+# memory_tier: standard = c6i.4xlarge (32 GB)
+#              high     = r6i.2xlarge (64 GB) — swerv_wrapper OOMs on 32 GB
+designs:
+  - name: aes
+    memory_tier: standard
+  - name: ibex
+    memory_tier: standard
+  - name: jpeg
+    memory_tier: standard
+  - name: riscv32i
+    memory_tier: standard
+  - name: swerv_wrapper
+    memory_tier: high
+  - name: gcd
+    memory_tier: standard
+
+clock_multipliers: [0.85, 1.0, 1.15, 1.5, 2.0, 3.0]
+max_parallel_jobs: 4
+
+# ── Vector Store ──────────────────────────────────────────────────────────────
+vector_store:
+  provider: weaviate
+  class_name: EDADocument
+  embedding_model: voyage-code-2
+  embedding_dim: 1536  # voyage-code-2 actual output dimension
+  reranker: cross-encoder/ms-marco-MiniLM-L-6-v2
+  hybrid_alpha: 0.7  # weight for dense vs BM25 (1.0 = pure dense)
+  top_k_retrieve: 20
+  top_k_rerank: 5
+
+# ── Graph Store ───────────────────────────────────────────────────────────────
+graph_store:
+  provider: neo4j
+  uri: ${NEO4J_URI:-bolt://localhost:7687}
+  database: neo4j
+  max_hops: 2
+
+# ── Inference ─────────────────────────────────────────────────────────────────
+inference:
+  base_model: meta-llama/Meta-Llama-3-8B-Instruct
+  lora_r: 16
+  lora_alpha: 32
+  load_in_4bit: true
+  max_context_tokens: 8192
+  lora_available: true  # set to false if Week 14 gate drops LoRA
+
+# ── Query Router ──────────────────────────────────────────────────────────────
+query_router:
+  categories:
+    - error_diagnosis       # → GraphRAG first
+    - drc_rule_lookup       # → GraphRAG + vector fallback
+    - rtl_qa                # → vector + LoRA fallback (or plain RAG + Claude if lora_available=false)
+    - constraint_generation # → LoRA + retrieval (or GraphRAG + Claude if lora_available=false)
+    - cross_tool_knowledge  # → GraphRAG only
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+evaluation:
+  categories:
+    - error_diagnosis
+    - rtl_qa
+    - constraint_generation
+    - drc_rule_lookup
+    - cross_tool_knowledge
+  edabench_target_samples: 900
+  context_budget_tokens: 8192
+  systems:
+    - gpt4o_zeroshot
+    - claude_sonnet_zeroshot
+    - plain_rag
+    - graphrag
+    - graphrag_lora
+
+# ── Synthetic Q&A ─────────────────────────────────────────────────────────────
+synthetic:
+  model: claude-sonnet-4-20250514
+  judge_confidence_threshold: 0.90
+  variants_per_violation: 5
+  target_pairs: 10000
+  violation_types:
+    - setup_violation
+    - hold_violation
+    - drc_spacing
+    - lvs_netlist_mismatch
+    - sdc_clock_period
+    - sdc_unit_mismatch
+    - def_naming
+    - fanout_violation
+    - ir_drop
+    - undriven_net

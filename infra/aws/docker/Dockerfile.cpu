@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile.cpu — CPU-only image for Stages 1-2 (OpenROAD + feature extraction)
+#
+# Based directly on openroad/orfs which has OpenROAD + Yosys pre-built.
+# ─────────────────────────────────────────────────────────────────────────────
+FROM openroad/orfs:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# ── Additional system deps ───────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-dev python3-venv \
+    wget curl unzip parallel \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Env vars pointing to pre-installed OpenROAD ──────────────────────────────
+ENV OPENROAD_BIN=/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad
+ENV YOSYS_BIN=/usr/local/bin/yosys
+ENV PDK_ROOT=/OpenROAD-flow-scripts/flow/platforms
+ENV PATH="/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:${PATH}"
+
+# ── Python dependencies (CPU only — no PyTorch GPU) ──────────────────────────
+WORKDIR /workspace
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir pandas numpy pyyaml networkx scipy scikit-learn && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir torch-scatter torch-sparse torch-geometric \
+        -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
+
+COPY . .
+
+ENV PPA_DATA_ROOT=/data
+RUN mkdir -p /data/raw/openabc_d /data/raw/circuitnet /data/raw/openroad_runs
+
+RUN python3 -c "import torch; import pandas; print('CPU image OK')"

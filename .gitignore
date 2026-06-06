@@ -1,0 +1,50 @@
+# Vendor source (MLCAD carry-over — tracked separately)
+vendor/instrumented-ml-ppa/
+
+# Terraform secrets and state
+infra/aws/terraform/terraform.tfvars
+infra/aws/terraform/.terraform/
+infra/aws/terraform/*.tfstate
+infra/aws/terraform/*.tfstate.backup
+infra/aws/terraform/plan.tfplan
+
+# Data (large artifacts — synced via S3)
+data/
+models/
+results/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+
+# Environments
+.env
+*.env
+.venv/
+venv/
+
+# Secrets and credentials
+*.pem
+*.key
+*.credentials
+*.secret
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any UI tooling)
+node_modules/
+package-lock.json

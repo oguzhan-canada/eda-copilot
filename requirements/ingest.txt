@@ -1,0 +1,29 @@
+# Requirements — Phase 1: Ingestion & corpus pipeline
+
+# HTTP + scraping
+requests>=2.31.0
+trafilatura>=1.8.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Data handling
+pyarrow>=14.0.0
+pandas>=2.1.0
+python-dotenv>=1.0.0
+
+# Deduplication
+datasketch>=1.6.4
+
+# Config
+pyyaml>=6.0.1
+omegaconf>=2.3.0
+
+# AWS
+boto3>=1.34.0
+
+# Utilities
+tqdm>=4.66.0
+tenacity>=8.2.0
+
+# LLM API (synthetic Q&A generation)
+anthropic>=0.40.0

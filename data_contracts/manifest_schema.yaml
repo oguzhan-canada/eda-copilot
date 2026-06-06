@@ -1,0 +1,178 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Data Contract — EDA-KG Artifact Manifest Schema
+# ─────────────────────────────────────────────────────────────────────────────
+# Defines the schema for all data manifests in the project.
+# Every ingested artifact must conform to this contract.
+
+artifact_manifest:
+  description: "One row per ingested artifact (document, report, log, code file)"
+  columns:
+    - name: artifact_id
+      type: string
+      required: true
+      description: "Unique identifier: SHA-256 of content + source path"
+
+    - name: source_type
+      type: string
+      required: true
+      enum: [tier1_code, tier2_pdk, tier2_flow, tier3_docs, tier3_forum, tier4_synthetic, orfs_report]
+      description: "Corpus tier classification"
+
+    - name: source_name
+      type: string
+      required: true
+      description: "Human-readable source (e.g., 'openroad_docs', 'sky130_pdk')"
+
+    - name: source_url
+      type: string
+      required: false
+      description: "URL or path where the artifact was obtained"
+
+    - name: file_path
+      type: string
+      required: true
+      description: "Relative path within data/ directory"
+
+    - name: content_hash
+      type: string
+      required: true
+      description: "SHA-256 of raw content for dedup and contamination checks"
+
+    - name: token_count
+      type: integer
+      required: true
+      description: "Token count (cl100k_base tokenizer)"
+
+    - name: license
+      type: string
+      required: true
+      description: "License identifier (e.g., Apache-2.0, BSD-3-Clause, public_docs)"
+
+    - name: tool_name
+      type: string
+      required: false
+      description: "EDA tool name if applicable (OpenROAD, PrimeTime, Genus, etc.)"
+
+    - name: tool_version
+      type: string
+      required: false
+      description: "Tool version string"
+
+    - name: pdk_version
+      type: string
+      required: false
+      description: "PDK version if applicable"
+
+    - name: design_name
+      type: string
+      required: false
+      description: "Design name if artifact is design-specific"
+
+    - name: scrape_date
+      type: date
+      required: true
+      description: "Date the artifact was collected"
+
+    - name: format
+      type: string
+      required: true
+      enum: [verilog, vhdl, spice, liberty, lef, def, sdc, tcl, markdown, html, text, json, yaml, log, report]
+      description: "File format"
+
+    - name: dedup_status
+      type: string
+      required: true
+      enum: [unique, near_duplicate, exact_duplicate]
+      description: "MinHash deduplication result"
+
+orfs_run_manifest:
+  description: "One row per ORFS execution run"
+  inherits: artifact_manifest
+  additional_columns:
+    - name: orfs_version
+      type: string
+      required: true
+
+    - name: clock_target_ns
+      type: float
+      required: true
+
+    - name: wns
+      type: float
+      required: false
+
+    - name: tns
+      type: float
+      required: false
+
+    - name: total_power_mw
+      type: float
+      required: false
+
+    - name: cell_area_um2
+      type: float
+      required: false
+
+    - name: freq_mhz
+      type: float
+      required: false
+
+    - name: violation_count
+      type: integer
+      required: false
+
+    - name: run_status
+      type: string
+      required: true
+      enum: [success, failed, partial]
+
+triple_manifest:
+  description: "One row per extracted KG triple"
+  columns:
+    - name: triple_id
+      type: string
+      required: true
+
+    - name: subject_type
+      type: string
+      required: true
+
+    - name: subject_id
+      type: string
+      required: true
+
+    - name: relation
+      type: string
+      required: true
+
+    - name: object_type
+      type: string
+      required: true
+
+    - name: object_id
+      type: string
+      required: true
+
+    - name: confidence
+      type: float
+      required: true
+      description: "Extraction confidence score [0.0, 1.0]"
+
+    - name: extraction_method
+      type: string
+      required: true
+      enum: [regex, llm_structured, manual, hybrid]
+
+    - name: source_file
+      type: string
+      required: true
+
+    - name: source_span
+      type: string
+      required: false
+      description: "Line range or character span in source file"
+
+    - name: provenance_hash
+      type: string
+      required: true
+      description: "SHA-256 of source context for auditability"

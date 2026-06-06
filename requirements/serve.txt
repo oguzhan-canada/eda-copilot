@@ -1,0 +1,14 @@
+# Requirements — Phase 2-3: Graph + RAG + serving
+neo4j>=5.0             # Neo4j Python driver
+weaviate-client>=4.0   # Weaviate v4 client (BYO-vector API)
+voyageai>=0.3          # Voyage embeddings
+anthropic>=0.34        # Claude API
+langchain>=0.2         # Orchestration
+langchain-community>=0.2
+sentence-transformers>=3.0  # Cross-encoder reranker
+scikit-learn>=1.4      # Query router classifier
+fastapi>=0.110
+uvicorn>=0.27
+gradio>=4.0
+pydantic>=2.5
+httpx>=0.27

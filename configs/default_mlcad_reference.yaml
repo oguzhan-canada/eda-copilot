@@ -1,0 +1,135 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# REAL_DATA PPA Framework — Central Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# All paths, hyperparameters, and tool settings in one place.
+# Override any value via environment variable with prefix PPA_
+# e.g. PPA_DATA_ROOT=/mnt/data overrides data_root below.
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+# DATA_ROOT: external mount for large datasets (OpenABC-D, CircuitNet, runs)
+# Defaults to ./data if not set. Use a mounted volume in production.
+data_root: ${PPA_DATA_ROOT:-./data}
+raw_dir: ${data_root}/raw
+openabc_dir: ${raw_dir}/openabc_d
+circuitnet_dir: ${raw_dir}/circuitnet
+openroad_runs_dir: ${raw_dir}/openroad_runs
+
+# Feature output directories
+features_dir: ./features
+graph_dir: ${features_dir}/graph
+spatial_dir: ${features_dir}/spatial
+
+# Model and results output
+models_dir: ./models/real
+results_dir: ./results
+
+# ── EDA Tool Settings ─────────────────────────────────────────────────────────
+openroad_bin: ${OPENROAD_BIN:-openroad}
+yosys_bin: ${YOSYS_BIN:-yosys}
+pdk_root: ${PDK_ROOT:-/opt/openroad/flow/platforms}
+pdk: asap7
+tech_node: 7nm  # ASAP7 is a 7nm predictive PDK
+
+# ── Design Sweep ──────────────────────────────────────────────────────────────
+designs:
+  - ibex
+  - swerv_wrapper
+  - riscv32i
+  - jpeg_encoder
+  - aes128
+
+clock_targets_ns:
+  start: 2.0
+  stop: 6.0
+  step: 0.4
+  # Produces: [2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, 4.8, 5.2, 5.6, 6.0]
+
+max_parallel_jobs: 4  # OpenROAD jobs to run concurrently
+
+# ── Training Hyperparameters ──────────────────────────────────────────────────
+training:
+  # GAT
+  gat:
+    hidden_dim: 128
+    num_layers: 4
+    num_heads: 4
+    dropout: 0.3          # higher than synthetic (0.1) per research doc
+    lr: 1.0e-3
+    batch_size: 16
+    epochs: 100
+    patience: 20           # early stopping
+    seeds: [0, 1, 42]
+    mc_dropout_T: 50
+
+  # GBDT (XGBoost)
+  gbdt:
+    n_estimators: [100, 300, 500]
+    max_depth: [6, 8, 10]
+    learning_rate: [0.01, 0.05, 0.1]
+    subsample: 0.8
+    colsample_bytree: 0.8
+    seed: 42
+
+  # Cross-validation
+  cv:
+    method: leave_one_design_out
+    n_folds: 5    # one per design
+
+# ── Reward Function ───────────────────────────────────────────────────────────
+reward:
+  alpha: 1.0    # power weight
+  beta: 1.0     # performance weight
+  gamma: 0.5    # area weight
+  lambda_wns: 10.0  # timing violation penalty
+
+# ── Optimization ──────────────────────────────────────────────────────────────
+optimization:
+  bo:
+    trials: 50
+    sobol_init: 10
+    eda_verify_every: 5
+    eda_budget: 10
+    seed: 42
+  rl:
+    total_steps: 500000
+    eval_freq: 10000
+    seed: 42
+
+# ── Manifest Schema ───────────────────────────────────────────────────────────
+# This defines the data contract for manifest_real.csv
+manifest_columns:
+  - sample_id          # unique identifier
+  - source             # openabc_d | circuitnet | openroad
+  - design_name        # design name (e.g. ibex)
+  - tech_node          # 7nm (ASAP7)
+  - clock_target_ns    # target clock period
+  - graph_path         # path to PyG .pt file
+  - spatial_path       # path to .npy density map
+  - timing_rpt_path    # path to STA timing report
+  - delay              # critical path delay (ns) — may be NaN
+  - total_power        # total power (mW) — may be NaN
+  - freq_mhz           # achieved frequency — may be NaN
+  - cell_area          # total cell area (um²) — may be NaN
+  - wns                # worst negative slack (ns)
+  - tns                # total negative slack (ns)
+  - slack_p0           # slack 0th percentile (min)
+  - slack_p10          # slack 10th percentile
+  - slack_p50          # slack 50th percentile (median)
+  - slack_p90          # slack 90th percentile
+  - violation_count    # number of timing violations
+  - clock_period       # actual clock period achieved
+  - node_count         # number of nodes in netlist
+  - total_edges        # number of edges in netlist
+  - max_fan_out        # maximum fan-out
+  - register_count     # number of registers
+  - avg_path_depth     # average combinational path depth
+  - edge_density       # edges / nodes ratio
+  - mean_density       # mean cell density
+  - std_density        # std of cell density
+  - peak_density       # peak cell density
+  - hotspot_tile_count # tiles with density > 0.8
+  - utilization_estimate # area utilization
+  - has_delay          # boolean: delay available
+  - has_power          # boolean: power/area available
+  - run_status         # success | failed | partial
+  - tool_version       # OpenROAD commit or dataset version

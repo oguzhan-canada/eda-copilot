@@ -1,0 +1,9 @@
+# Requirements — Phase 3: Fine-tuning (GPU instance only)
+torch>=2.2
+transformers>=4.40
+peft>=0.10             # LoRA/QLoRA
+trl>=0.8               # Training with RL / SFT
+bitsandbytes>=0.43     # 4-bit quantization
+datasets>=2.18
+accelerate>=0.28
+vllm>=0.4              # Serving
