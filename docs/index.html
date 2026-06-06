@@ -141,6 +141,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .skeleton-line:nth-child(3){width:78%}
 .streaming-cursor{color:var(--teal);display:inline-block;animation:blink 0.8s step-end infinite;font-size:18px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.copy-answer-btn{display:flex;align-items:center;gap:6px;margin-top:12px;padding:8px 14px;background:var(--navy3);border:1px solid var(--navy4);border-radius:6px;color:var(--dim);font-size:13px;cursor:pointer;transition:all .2s}
+.copy-answer-btn:hover{border-color:var(--teal);color:var(--teal)}
+.copy-answer-btn.copied{border-color:var(--green,#4ade80);color:var(--green,#4ade80)}
 @keyframes shimmerPulse{0%{opacity:.4}50%{opacity:.8}100%{opacity:.4}}
 .results-grid,.summary-grid,.case-grid{display:flex;gap:20px;flex-wrap:wrap}
 .results-grid>.chart-box,.summary-grid>.chart-box,.case-grid>.case-card{flex:1 1 320px}
@@ -938,7 +941,7 @@ function renderResponse(data){
         <div class="big-stat"><div class="num" style="color:var(--blue)">${escapeHTML(prettifyCategory(data.task_category))}</div><div class="lbl">Category</div></div>
         <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(data.graph_fact_count ?? 0))}</div><div class="lbl">Graph facts</div></div>
         <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(data.chunk_count ?? 0))}</div><div class="lbl">Chunks</div></div>
-        <div class="big-stat"><div class="num" style="color:var(--gold)">${escapeHTML(String(data.latency_ms ?? 0))}ms</div><div class="lbl">Latency</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--gold)">${((data.latency_ms ?? 0) / 1000).toFixed(1)}s</div><div class="lbl">Latency</div></div>
       </div>
     </div>`;
 
@@ -964,6 +967,7 @@ function renderStreamStart(metadata) {
     <div class="answer-card">
       <div class="result-tag">Answer</div>
       <div class="answer-text" id="streamAnswer"><span class="streaming-cursor">▍</span></div>
+      <button class="copy-answer-btn" id="copyAnswerBtn" type="button" onclick="copyAnswer()">📋 Copy answer</button>
     </div>
     <div class="citation-card">
       <button class="citation-header" id="citationToggle" type="button" aria-expanded="true">
@@ -991,6 +995,18 @@ function renderStreamStart(metadata) {
     btn.setAttribute('aria-expanded', String(!expanded));
     list.style.display = expanded ? 'none' : 'flex';
     document.getElementById('citationChevron').textContent = expanded ? '▾' : '▴';
+  });
+}
+
+function copyAnswer() {
+  const el = document.getElementById('streamAnswer');
+  if (!el) return;
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyAnswerBtn');
+    btn.innerHTML = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = '📋 Copy answer'; btn.classList.remove('copied'); }, 2000);
   });
 }
 
@@ -1055,7 +1071,7 @@ async function submitQuery(forcedQuery){
           const el = document.getElementById('streamAnswer');
           if (el) el.innerHTML = renderAnswerHTML(answerText);
           const latEl = document.getElementById('streamLatency');
-          if (latEl) latEl.textContent = payload.latency_ms + 'ms';
+          if (latEl) latEl.textContent = (payload.latency_ms / 1000).toFixed(1) + 's';
         }
       }
     }
