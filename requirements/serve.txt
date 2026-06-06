@@ -9,6 +9,7 @@ sentence-transformers>=3.0  # Cross-encoder reranker
 scikit-learn>=1.4      # Query router classifier
 fastapi>=0.110
 uvicorn>=0.27
+slowapi>=0.1.9
 gradio>=4.0
 pydantic>=2.5
 httpx>=0.27

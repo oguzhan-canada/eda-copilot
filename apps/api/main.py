@@ -10,12 +10,17 @@ Usage:
 
 import os
 import time
+import logging
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 import anthropic
 
 from apps.api.services.fusion_retriever import FusionRetriever
@@ -55,6 +60,14 @@ class HealthResponse(BaseModel):
     kg_nodes: Optional[int] = None
 
 
+# ── Rate limiting ─────────────────────────────────────────────────────────
+
+limiter = Limiter(key_func=get_remote_address)
+
+logger = logging.getLogger("eda-copilot")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+
+
 # ── App lifecycle ────────────────────────────────────────────────────────
 
 retriever: Optional[FusionRetriever] = None
@@ -77,28 +90,29 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────
 
 @app.post("/query", response_model=QueryResponse)
-async def query(request: QueryRequest):
+@limiter.limit("10/minute")
+async def query(request: Request, body: QueryRequest):
     """Answer an EDA question using graph + vector retrieval + Claude synthesis."""
     if not retriever or not synthesizer:
         raise HTTPException(status_code=503, detail="Services not initialized")
 
     start = time.time()
 
-    # Step 1: Retrieve
     result = retriever.retrieve(
-        query=request.query,
-        top_k=request.top_k,
-        search_mode=request.search_mode,
+        query=body.query,
+        top_k=body.top_k,
+        search_mode=body.search_mode,
     )
 
-    # Step 2: Synthesize (optional)
-    if request.synthesize:
-        answer = synthesizer.synthesize(request.query, result)
+    if body.synthesize:
+        answer = synthesizer.synthesize(body.query, result)
     else:
         answer = {
             "answer": "Retrieval only — synthesis disabled",
@@ -110,6 +124,13 @@ async def query(request: QueryRequest):
         }
 
     latency = (time.time() - start) * 1000
+    usage = answer.get("usage", {})
+    logger.info(
+        "QUERY | endpoint=/query | tokens_in=%s | tokens_out=%s | latency=%dms | category=%s | ip=%s",
+        usage.get("input_tokens", "?"), usage.get("output_tokens", "?"),
+        int(latency), result.get("task_category", "unknown"),
+        get_remote_address(request),
+    )
 
     return QueryResponse(
         answer=answer.get("answer", ""),
@@ -125,7 +146,8 @@ async def query(request: QueryRequest):
 
 
 @app.post("/query/stream")
-async def query_stream(request: QueryRequest):
+@limiter.limit("10/minute")
+async def query_stream(request: Request, body: QueryRequest):
     """Stream an EDA answer via SSE — metadata first, then tokens, then done."""
     import json as json_lib
 
@@ -135,9 +157,9 @@ async def query_stream(request: QueryRequest):
     t0 = time.time()
 
     result = retriever.retrieve(
-        query=request.query,
-        top_k=request.top_k,
-        search_mode=request.search_mode,
+        query=body.query,
+        top_k=body.top_k,
+        search_mode=body.search_mode,
     )
 
     context = synthesizer._format_context(result)
@@ -145,7 +167,7 @@ async def query_stream(request: QueryRequest):
     if len(context) > max_chars:
         context = context[:max_chars] + "\n\n[Context truncated for length]"
 
-    user_message = f"## Context\n\n{context}\n\n## Query\n\n{request.query}\n\nRespond with a clear, detailed answer. Do NOT use JSON format — write a natural language answer. Cite source files inline."
+    user_message = f"## Context\n\n{context}\n\n## Query\n\n{body.query}\n\nRespond with a clear, detailed answer. Do NOT use JSON format — write a natural language answer. Cite source files inline."
 
     async def generate():
         # First chunk: metadata so UI can show debug strip immediately
@@ -176,6 +198,12 @@ async def query_stream(request: QueryRequest):
 
         # Final chunk: latency
         latency_ms = int((time.time() - t0) * 1000)
+        logger.info(
+            "QUERY | endpoint=/query/stream | latency=%dms | category=%s | graph_facts=%d | chunks=%d | ip=%s",
+            latency_ms, result.get("task_category", "unknown"),
+            len(result.get("graph_facts", [])), len(result.get("chunks", [])),
+            get_remote_address(request),
+        )
         done = {"type": "done", "latency_ms": latency_ms}
         yield f"data: {json_lib.dumps(done)}\n\n"
 
