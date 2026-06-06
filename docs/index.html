@@ -594,8 +594,8 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
     <div class="wrap section">
       <h2>System Architecture</h2>
       <div class="link-row">
-        <a class="link-pill" href="https://github.com/oguzhan-canada/eda-copilot/blob/master/paper/research_paper.pdf">📄 Research (PDF)</a>
-                <a class="link-pill" href="https://github.com/oguzhan-canada/eda-copilot/tree/master">💻 GitHub Repo</a>
+        <a class="link-pill" href="https://github.com/oguzhan-canada/llm-eda-kg/blob/master/paper/research_paper.pdf">📄 Research (PDF)</a>
+                <a class="link-pill" href="https://github.com/oguzhan-canada/llm-eda-kg">💻 GitHub Repo</a>
                 <a class="link-pill" href="architecture-guide.html">🏗️ Architecture Guide</a>
                 <a class="link-pill" href="cost-optimization.html">💰 Cost Optimization</a>
       </div>
@@ -665,7 +665,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
 
         <div class="intro-quote" style="margin-top:28px">
           <p>Every technology choice was driven by a simple principle: use managed cloud services where possible to minimize operational overhead, and pick tools that are proven in production rather than cutting-edge but fragile. Neo4j Aura was chosen for the knowledge graph because it offers native graph traversal with sub-50ms latency on 2-hop queries — critical for real-time retrieval. Weaviate Cloud provides hybrid search (combining BM25 keyword matching with dense vector similarity) out of the box, eliminating the need to build and maintain separate search pipelines. The voyage-code-2 embedding model was selected specifically because it's optimized for code and technical documentation, producing 1,536-dimensional vectors that capture domain-specific semantics better than general-purpose models.</p>
-          <p style="margin-top:14px">For the AI backbone, we use Claude Sonnet for answer synthesis because it handles long context windows and produces well-structured responses with citations. The fine-tuned Mistral-7B model was trained using QLoRA (4-bit quantization) to keep GPU costs under $10 — it runs on a single GPU and adds EDA domain vocabulary that the base model lacks. The cross-encoder reranker (ms-marco-MiniLM) sits between retrieval and synthesis, ensuring that only the most relevant evidence reaches the answer generator. FastAPI serves the entire pipeline as a REST endpoint, and Gradio provides an interactive demo interface. All infrastructure runs on AWS using Spot instances where possible — the full ORFS parameter sweep cost $2.41 instead of the $55–80 originally budgeted.</p>
+          <p style="margin-top:14px">For the AI backbone, we use Claude Sonnet for answer synthesis because it handles long context windows and produces well-structured responses with citations. The fine-tuned Mistral-7B model was trained using QLoRA (4-bit quantization) to keep GPU costs under $10 — it runs on a single GPU and adds EDA domain vocabulary that the base model lacks. The cross-encoder reranker (ms-marco-MiniLM) sits between retrieval and synthesis, ensuring that only the most relevant evidence reaches the answer generator. FastAPI serves the entire pipeline as a streaming REST endpoint, and this GitHub Pages dashboard provides the interactive demo interface. All infrastructure runs on AWS using Spot instances where possible — the full ORFS parameter sweep cost $2.41 instead of the $55–80 originally budgeted.</p>
         </div>
       </div>
     </div>
