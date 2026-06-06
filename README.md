@@ -86,10 +86,40 @@ An end-to-end system for building knowledge-driven EDA assistants that reason ov
 
 | Phase | Weeks | Focus | Key Deliverable |
 |-------|-------|-------|-----------------|
-| **1** | 1–4 | Corpus & Data Pipeline | 59B-token staged corpus, 10K synthetic Q&A, 100+ ORFS runs |
-| **2** | 5–9 | Knowledge Graph | Neo4j ontology, 50K+ triples, quality validation |
-| **3** | 10–14 | RAG + Inference | Hybrid GraphRAG, QLoRA adapter, API server |
-| **4** | 15–18 | EDABench + Validation | 900-sample benchmark, system evaluation, pilot UI |
+| **1** | 1–4 | Corpus & Data Pipeline | 252M-token staged corpus, 10K synthetic Q&A |
+| **2** | 5–9 | Knowledge Graph | Neo4j ontology, 18,035 nodes, version-aware edges |
+| **3** | 10–14 | RAG + Fine-tuning | Hybrid GraphRAG, QLoRA adapter, API server |
+| **4** | 15–16 | Evaluation + Deployment | 120-sample EDABench, live production system |
+
+## Live System
+
+The system is deployed and publicly accessible:
+
+- **Dashboard**: [oguzhan-canada.github.io/eda-copilot](https://oguzhan-canada.github.io/eda-copilot/)
+- **API**: HTTPS endpoint with SSE streaming (~2–3s perceived latency)
+- **Architecture Guide**: [Implementation reference](https://oguzhan-canada.github.io/eda-copilot/architecture-guide.html)
+
+### Production Stack
+
+| Component | Technology | Status |
+|---|---|---|
+| Knowledge Graph | Neo4j Aura (18,035 nodes) | ✅ Connected |
+| Vector Store | Weaviate Cloud (8,958 objects) | ✅ Connected |
+| LLM Synthesis | Claude Sonnet via Anthropic API | ✅ Streaming |
+| API Server | FastAPI + uvicorn + systemd | ✅ Running |
+| Reverse Proxy | nginx + Let's Encrypt SSL | ✅ HTTPS |
+| Frontend | GitHub Pages (single-file HTML) | ✅ Live |
+| CI | GitHub Actions keepalive ping | ✅ Active |
+
+### Key Results
+
+| Metric | Value |
+|---|---|
+| Answer quality vs standalone LLM | **21.9× improvement** |
+| Mean answer quality (EDABench) | 0.482 |
+| Graph hit rate | 67.5% |
+| Per-query cost | ~$0.01 |
+| Total build cost | **$240** (66% under budget) |
 
 ## Reused Assets from MLCAD Project
 
@@ -104,11 +134,12 @@ An end-to-end system for building knowledge-driven EDA assistants that reason ov
 
 ## Budget
 
-| Item | Cost |
-|------|------|
-| One-time build (18 weeks) | ~$2,700 |
-| Monthly recurring | ~$1,500/mo |
+| Item | Budgeted | Actual |
+|------|----------|--------|
+| Total build (16 weeks) | ~$700 | **$240** |
+| Monthly recurring (VPS) | — | ~$3/mo |
+| Per-query API cost | — | ~$0.01 |
 
 ## License
 
-TBD
+MIT

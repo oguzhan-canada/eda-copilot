@@ -1079,6 +1079,80 @@ Loss monotonically decreased across all 3 epochs — no overfitting observed.
 
 ### Evaluation Run
 
+Evaluated full system against EDABench (120 items, 5 categories):
+
+| Metric | Result |
+|---|---|
+| Mean answer quality | 0.482 |
+| Graph hit rate | 67.5% |
+| Improvement vs standalone LLM | 21.9× |
+
+---
+
+## Week 15–16 — Production Deployment
+
+### VPS Deployment
+
+**Status**: ✅ Complete
+
+**What was done**:
+- Provisioned RackNerd VPS (Ubuntu 24.04, 2GB RAM, $3/mo)
+- Deployed FastAPI application with systemd auto-restart
+- Configured nginx reverse proxy with HTTPS (Let's Encrypt, auto-renews)
+- Smoke tested all components: Neo4j (18,035 nodes), Weaviate (8,958 objects), Claude API
+
+### API Improvements
+
+**SSE Streaming**:
+- Added `/query/stream` endpoint using Server-Sent Events
+- Three structured event types: `meta` → `token` → `done`
+- Perceived latency reduced from 15s to 2–3s (first words appear immediately)
+- nginx configured with `proxy_buffering off` for real-time delivery
+
+**Input Validation**:
+- Query length capped to prevent abuse
+- Top-k parameter clamped to valid range
+- Rate limiting per client IP
+- Real client IP detection via nginx `X-Real-IP` header
+
+**Observability**:
+- Structured logging with query metadata (category, tokens, latency)
+- Persistent query log for usage analytics
+- Token usage tracking (prompt tokens + answer tokens) visible in UI
+
+### Dashboard Enhancements
+
+- Connected to live API with SSE streaming
+- Blinking cursor animation during answer generation
+- Debug strip: Category, Graph facts, Chunks, Prompt tokens, Answer tokens, Latency
+- Copy answer button with clipboard integration
+- Reset button to clear and start fresh
+- Query scope hint guiding users toward technical EDA questions
+- ASAP7 PDK coverage gap documented in Known Limitations
+- GitHub Actions keepalive workflow (pings API every 4 minutes)
+
+### Security Remediation
+
+- GitGuardian-flagged credentials removed from source code
+- Git history squashed and force-pushed to purge credential traces
+- Global pre-commit hook scanning 12+ secret patterns across all repos
+- All secrets stored exclusively in server environment variables
+
+### Final Budget
+
+| Component | Budgeted | Actual | Status |
+|---|---|---|---|
+| Phase 1 (corpus + extract) | ~$200 | ~$224 | ✅ Complete |
+| Phase 2 (graph) | ~$50 | $0 (Aura free tier) | ✅ Complete |
+| Phase 3 (retrieval + fine-tuning) | ~$450 | ~$10 | ✅ Complete |
+| Phase 4 (EDABench + eval) | ~$10 | ~$5 | ✅ Complete |
+| Deployment (VPS) | — | $3/mo | ✅ Running |
+| **Total** | **~$710** | **~$240** | **66% under budget** |
+
+### Project Complete
+
+All 4 phases delivered. System is live in production at the published dashboard URL.
+
 Ran full system evaluation on all 120 EDABench items plus two ablation baselines.
 Three configurations tested:
 

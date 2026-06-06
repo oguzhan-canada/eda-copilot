@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Guide — LLM-Powered Knowledge Graphs</title>
+<meta name="description" content="A complete implementation reference for building domain-specific GraphRAG systems.">
+<style>
+:root{
+  --bg:#0B1120;
+  --navy2:#111827;
+  --navy3:#1F2937;
+  --navy4:#374151;
+  --fg:#F1F5F9;
+  --dim:#94A3B8;
+  --teal:#2DD4BF;
+  --coral:#F97066;
+  --blue:#60A5FA;
+  --gold:#FBBF24;
+  --border:rgba(148,163,184,.18);
+  --shadow:0 18px 48px rgba(0,0,0,.34);
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:linear-gradient(180deg,#0B1120 0%,#0e1527 100%);
+  color:var(--fg);
+  font-family:'Calibri','Candara','Segoe UI',sans-serif;
+  line-height:1.72;
+}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+p,li{color:var(--dim);font-size:17px}
+code,kbd{font-family:Consolas,'Courier New',monospace}
+.page{
+  display:grid;
+  grid-template-columns:280px minmax(0,1fr);
+  gap:28px;
+  max-width:1500px;
+  margin:0 auto;
+  padding:24px;
+}
+.sidebar{
+  position:sticky;
+  top:24px;
+  height:calc(100vh - 48px);
+  overflow:auto;
+  background:rgba(17,24,39,.92);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:22px 18px;
+  box-shadow:var(--shadow);
+}
+.brand{
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:1.8px;
+  color:var(--teal);
+  margin-bottom:14px;
+}
+.side-title{
+  font-size:20px;
+  line-height:1.25;
+  margin-bottom:8px;
+}
+.side-note{
+  font-size:14px;
+  margin-bottom:18px;
+}
+.nav-list{list-style:none;display:grid;gap:8px}
+.nav-link{
+  display:block;
+  padding:10px 12px;
+  border-radius:10px;
+  color:var(--dim);
+  border:1px solid transparent;
+  transition:.2s ease;
+  font-size:14px;
+}
+.nav-link:hover{background:var(--navy3);border-color:var(--border);text-decoration:none;color:var(--fg)}
+.nav-link.active{
+  background:linear-gradient(135deg,rgba(45,212,191,.18),rgba(96,165,250,.12));
+  border-color:rgba(45,212,191,.32);
+  color:var(--fg);
+}
+.main{min-width:0}
+.hero,.section,.callout,.table-wrap,.code-block,.card,.mini-card,.metric-card,.diagram-shell,.checklist,.template-grid,.footer-card{
+  background:rgba(17,24,39,.9);
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+}
+.hero{
+  padding:34px;
+  margin-bottom:24px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::after{
+  content:"";
+  position:absolute;
+  inset:auto -80px -80px auto;
+  width:240px;
+  height:240px;
+  background:radial-gradient(circle,rgba(45,212,191,.16),transparent 68%);
+}
+.kicker{
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:1.8px;
+  color:var(--teal);
+  margin-bottom:10px;
+}
+h1{font-size:46px;line-height:1.12;margin-bottom:12px;max-width:900px}
+.subtitle{font-size:21px;color:var(--dim);max-width:860px;margin-bottom:18px}
+.author{font-size:16px;color:var(--fg);margin-bottom:18px}
+.hero-links{display:flex;gap:12px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 16px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--navy3);
+  color:var(--fg);
+}
+.btn.primary{background:rgba(45,212,191,.12);border-color:rgba(45,212,191,.35);color:var(--teal)}
+.grid-2,.grid-3,.metrics,.template-grid{display:grid;gap:18px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:24px}
+.metric-card{padding:18px}
+.metric-num{font-size:32px;font-weight:700;color:var(--fg);line-height:1.1}
+.metric-label{font-size:13px;color:var(--dim);margin-top:6px}
+.section{padding:30px;margin-bottom:24px;scroll-margin-top:20px}
+.section-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.section-num{font-size:13px;color:var(--teal);text-transform:uppercase;letter-spacing:1.6px}
+.section h2{font-size:30px;line-height:1.2}
+.section-lead{max-width:840px}
+.card,.mini-card,.checklist,.footer-card{padding:22px}
+.card h3,.mini-card h3,.checklist h3,.footer-card h3{font-size:21px;margin-bottom:8px;color:var(--fg)}
+.mini-card h4{font-size:16px;color:var(--teal);margin-bottom:8px}
+.diagram-shell{padding:22px;margin-bottom:24px;overflow:auto}
+.diagram-title{font-size:15px;color:var(--teal);text-transform:uppercase;letter-spacing:1.4px;margin-bottom:14px}
+.diagram{min-width:900px;display:grid;gap:16px}
+.diagram-row{display:grid;grid-template-columns:1fr 56px 1fr 56px 1.4fr 56px 1fr 56px 1fr 56px 1fr;align-items:center}
+.diagram-box,.diagram-group{
+  background:linear-gradient(180deg,var(--navy3),rgba(31,41,55,.78));
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px 16px;
+  text-align:center;
+}
+.diagram-box strong,.diagram-group strong{display:block;font-size:18px;color:var(--fg);margin-bottom:4px}
+.diagram-box span,.diagram-group span{display:block;font-size:13px;color:var(--dim)}
+.diagram-arrow{font-size:26px;color:var(--teal);text-align:center}
+.diagram-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diagram-chip{background:rgba(11,17,32,.75);border:1px solid rgba(148,163,184,.18);border-radius:12px;padding:14px}
+.diagram-chip .chip-title{font-size:15px;color:var(--gold);margin-bottom:4px}
+.diagram-chip .chip-copy{font-size:12px;color:var(--dim)}
+.bullet-list{padding-left:22px;display:grid;gap:10px}
+.bullet-list strong{color:var(--fg)}
+.table-wrap{overflow:auto;margin-top:18px}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th,td{padding:13px 14px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--teal);background:rgba(31,41,55,.75)}
+td{font-size:15px;color:var(--dim)}
+tr:nth-child(even) td{background:rgba(31,41,55,.28)}
+.callout{
+  margin-top:18px;
+  padding:18px 20px;
+  border-left:4px solid var(--teal);
+  background:linear-gradient(135deg,rgba(45,212,191,.09),rgba(96,165,250,.06));
+}
+.callout p{color:var(--fg);font-size:16px}
+.code-block{margin-top:18px;overflow:auto}
+.code-top{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--dim);background:rgba(11,17,32,.8)}
+pre{padding:18px 20px;overflow:auto;background:#0a1020}
+pre code{display:block;color:#dbe7f5;font-size:14px;line-height:1.65;white-space:pre}
+.t-com{color:#7f8ea3}.t-key{color:#c792ea}.t-str{color:#ecc48d}.t-fn{color:#82aaff}.t-num{color:#f78c6c}.t-typ{color:#60A5FA}.t-prop{color:#2DD4BF}.t-tag{color:#f07178}
+.kpi-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.kpi{padding:18px;border-radius:16px;background:rgba(31,41,55,.5);border:1px solid var(--border)}
+.kpi .label{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.kpi .value{font-size:28px;font-weight:700;color:var(--fg)}
+.checklist ul{padding-left:20px;display:grid;gap:10px}
+.template-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px}
+.footer-card{margin-bottom:12px}
+.small{font-size:14px;color:var(--dim)}
+.top-link{margin-top:14px;display:inline-block}
+hr.sep{border:none;height:1px;background:var(--border);margin:18px 0}
+@media (max-width:1200px){
+  .page{grid-template-columns:1fr}
+  .sidebar{position:relative;top:0;height:auto}
+}
+@media (max-width:900px){
+  .grid-2,.grid-3,.metrics,.kpi-row,.template-grid{grid-template-columns:1fr}
+  h1{font-size:34px}
+  .subtitle{font-size:18px}
+  .hero,.section{padding:24px}
+}
+</style>
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar">
+      <div class="brand">GraphRAG Implementation Guide</div>
+      <div class="side-title">Architecture Guide</div>
+      <p class="side-note">A practical blueprint for rebuilding this domain-specific knowledge assistant architecture.</p>
+      <ul class="nav-list">
+        <li><a class="nav-link" href="#overview">1. Architecture Overview</a></li>
+        <li><a class="nav-link" href="#data-pipeline">2. Data Pipeline</a></li>
+        <li><a class="nav-link" href="#knowledge-graph">3. Knowledge Graph</a></li>
+        <li><a class="nav-link" href="#hybrid-retrieval">4. Hybrid Retrieval</a></li>
+        <li><a class="nav-link" href="#streaming-api">5. Streaming API</a></li>
+        <li><a class="nav-link" href="#frontend-dashboard">6. Frontend Dashboard</a></li>
+        <li><a class="nav-link" href="#fine-tuning">7. Fine-Tuning</a></li>
+        <li><a class="nav-link" href="#evaluation">8. Evaluation</a></li>
+        <li><a class="nav-link" href="#deployment-checklist">9. Deployment Checklist</a></li>
+        <li><a class="nav-link" href="#cost-analysis">10. Cost Analysis</a></li>
+        <li><a class="nav-link" href="#lessons-learned">11. Lessons Learned</a></li>
+        <li><a class="nav-link" href="#next-project-template">12. Next Project Template</a></li>
+      </ul>
+    </aside>
+
+    <main class="main">
+      <header class="hero" id="top">
+        <div class="kicker">Architecture Guide — LLM-Powered Knowledge Graphs</div>
+        <h1>Architecture Guide — LLM-Powered Knowledge Graphs</h1>
+        <p class="subtitle">A complete implementation reference for building domain-specific GraphRAG systems.</p>
+        <p class="author">Oguzhan Tekin · Machine Learning and AI Researcher · Toronto, Canada</p>
+        <div class="hero-links">
+          <a class="btn primary" href="index.html">← Back to Main Dashboard</a>
+          <a class="btn" href="#overview">Start Reading</a>
+        </div>
+        <div class="metrics">
+          <div class="metric-card"><div class="metric-num">GraphRAG</div><div class="metric-label">Graph + Retrieval Augmented Generation architecture</div></div>
+          <div class="metric-card"><div class="metric-num">18,035</div><div class="metric-label">Knowledge graph nodes in production</div></div>
+          <div class="metric-card"><div class="metric-num">120</div><div class="metric-label">Benchmark samples in EDABench</div></div>
+          <div class="metric-card"><div class="metric-num">$240</div><div class="metric-label">Total build cost over 16 weeks</div></div>
+        </div>
+      </header>
+
+      <section class="section" id="overview">
+        <div class="section-head">
+          <div>
+            <div class="section-num">Section 1</div>
+            <h2>Architecture Overview</h2>
+          </div>
+          <p class="section-lead">This system is a GraphRAG stack: it combines dense and sparse retrieval with a structured knowledge graph so the model can answer both direct lookup questions and multi-hop domain reasoning tasks.</p>
+        </div>
+
+        <div class="diagram-shell">
+          <div class="diagram-title">End-to-end request flow</div>
+          <div class="diagram">
+            <div class="diagram-row">
+              <div class="diagram-box"><strong>User Query</strong><span>Natural language question from engineer</span></div>
+              <div class="diagram-arrow">→</div>
+              <div class="diagram-box"><strong>FastAPI API</strong><span>Accepts request and starts SSE response</span></div>
+              <div class="diagram-arrow">→</div>
+              <div class="diagram-group">
+                <strong>Query Router</strong>
+                <span>Classifies intent and decides retrieval strategy</span>
+              </div>
+              <div class="diagram-arrow">→</div>
+              <div class="diagram-group">
+                <strong>Knowledge Sources</strong>
+                <div class="diagram-split">
+                  <div class="diagram-chip">
+                    <div class="chip-title">Neo4j KG</div>
+                    <div class="chip-copy">Structured entities, versions, fixes, rules</div>
+                  </div>
+                  <div class="diagram-chip">
+                    <div class="chip-title">Weaviate Vector Store</div>
+                    <div class="chip-copy">Embedded document chunks for semantic recall</div>
+                  </div>
+                </div>
+              </div>
+              <div class="diagram-arrow">→</div>
+              <div class="diagram-box"><strong>Fusion Retriever</strong><span>Merges graph, dense, and sparse evidence</span></div>
+              <div class="diagram-arrow">→</div>
+              <div class="diagram-box"><strong>Reranker</strong><span>Orders evidence by relevance and usefulness</span></div>
+            </div>
+            <div class="diagram-row">
+              <div class="diagram-box"><strong>Claude Synthesis</strong><span>Builds final grounded answer from ranked context</span></div>
+              <div class="diagram-arrow">→</div>
+              <div class="diagram-box"><strong>Streamed Answer</strong><span>Returned token-by-token to the dashboard</span></div>
+              <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="card"><h3>FastAPI API</h3><p>The API layer is the orchestration entrypoint. It validates requests, initializes the streaming channel, and coordinates routing, retrieval, and synthesis without embedding frontend concerns into backend logic.</p></div>
+          <div class="card"><h3>Query Router</h3><p>The router converts an open-ended question into a retrieval plan. It identifies the query category, extracts entities when possible, and decides how much to rely on graph traversal, lexical search, and semantic recall.</p></div>
+          <div class="card"><h3>Neo4j + Weaviate</h3><p>Neo4j stores typed entities and relations for explainable reasoning, while Weaviate stores chunk embeddings for broad semantic coverage. Together they balance structured precision and unstructured recall.</p></div>
+          <div class="card"><h3>Fusion Retriever</h3><p>Fusion retrieval collects evidence from dense search, BM25, and graph expansion in parallel. It combines these signals into a unified candidate pool so strong evidence is not missed just because it came from a different retrieval channel.</p></div>
+          <div class="card"><h3>Reranker</h3><p>The reranker is the precision gate. It uses a cross-encoder to rescore retrieved passages and graph facts against the full user question, lifting the most actionable evidence to the top of the context window.</p></div>
+          <div class="card"><h3>Claude Synthesis</h3><p>The final model stage turns ranked evidence into a concise grounded answer. It cites retrieved facts in the prompt context, produces a readable engineering response, and streams tokens immediately back to the client.</p></div>
+        </div>
+
+        <div class="callout"><p><strong>Why this architecture works:</strong> pure vector search is strong for semantic similarity, but it struggles with version differences, entity relationships, and multi-step fault chains. Adding a knowledge graph makes the retrieval layer reasoning-aware before the LLM starts writing.</p></div>
+      </section>
+
+      <section class="section" id="data-pipeline">
+        <div class="section-head">
+          <div><div class="section-num">Section 2</div><h2>Data Pipeline</h2></div>
+          <p class="section-lead">The corpus pipeline transforms raw domain materials into clean, deduplicated, chunked retrieval units that can feed both the vector store and the graph extraction workflow.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Four-tier corpus design</h3>
+            <ul class="bullet-list">
+              <li><strong>Structured code:</strong> parsable code, configs, command snippets, and structured text that exposes directly executable system knowledge.</li>
+              <li><strong>PDK artifacts:</strong> process documentation, rule references, versioned notes, and domain-specific constraint materials.</li>
+              <li><strong>Tool docs:</strong> command help, usage docs, flow guidance, and engineering references that explain expected behavior.</li>
+              <li><strong>Synthetic Q&amp;A:</strong> generated training-style pairs that convert dense documentation into user-like question formats for better retrieval coverage.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Deduplication and normalization</h3>
+            <p>Before embedding, the pipeline performs MinHash-based near-duplicate detection to suppress repeated content across overlapping sources. This reduces embedding waste, lowers retrieval noise, and prevents the ranker from repeatedly surfacing the same idea from slightly different files.</p>
+            <p>Documents are also normalized into a shared schema with source IDs, version tags, document families, and chunk lineage metadata. That shared metadata becomes critical later for graph extraction, debugging, and evaluation slicing.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Stage</th><th>Purpose</th><th>Implementation Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Ingest</td><td>Load heterogeneous domain material into a unified corpus object</td><td>Preserve source type, title, version tag, and lineage metadata from day one.</td></tr>
+              <tr><td>Deduplicate</td><td>Remove exact and near duplicates using MinHash</td><td>Keep a canonical record and track which sources collapsed into it.</td></tr>
+              <tr><td>Chunk</td><td>Split long material into retrieval-sized segments</td><td>Use structure-aware boundaries instead of raw fixed-size slicing where possible.</td></tr>
+              <tr><td>Embed</td><td>Generate dense vectors with Voyage AI</td><td>Embed both retrieval chunks and synthetic Q&amp;A prompts if they support search quality.</td></tr>
+              <tr><td>Load</td><td>Store vectors and metadata in Weaviate</td><td>Index chunk text, source tags, categories, versions, and document family IDs.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="mini-card">
+            <h4>Chunking strategy</h4>
+            <p>Chunk around natural boundaries such as headings, rule blocks, error/fix pairs, config sections, and API examples. Add slight overlap between adjacent chunks so short dependency chains survive splitting, but keep chunks focused enough that reranking can still separate signal from context padding.</p>
+          </div>
+          <div class="mini-card">
+            <h4>Embedding and vector loading</h4>
+            <p>Use Voyage AI embeddings for semantic retrieval, then push each chunk plus metadata into Weaviate. Store enough metadata to support post-retrieval filtering by source family, version, and document role without rebuilding the index.</p>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>Pipeline sketch</span><span>Python-style pseudocode</span></div>
+          <pre><code><span class="t-key">for</span> doc <span class="t-key">in</span> <span class="t-fn">load_corpus</span>():
+    normalized = <span class="t-fn">normalize_document</span>(doc)
+    canonical = <span class="t-fn">minhash_deduplicate</span>(normalized)
+    chunks = <span class="t-fn">chunk_document</span>(canonical, mode=<span class="t-str">"structure_aware"</span>)
+
+    <span class="t-key">for</span> chunk <span class="t-key">in</span> chunks:
+        vector = <span class="t-fn">voyage_embed</span>(chunk[<span class="t-str">"text"</span>])
+        <span class="t-fn">weaviate_upsert</span>({
+            <span class="t-prop">"text"</span>: chunk[<span class="t-str">"text"</span>],
+            <span class="t-prop">"vector"</span>: vector,
+            <span class="t-prop">"source_type"</span>: chunk[<span class="t-str">"source_type"</span>],
+            <span class="t-prop">"version"</span>: chunk[<span class="t-str">"version"</span>],
+            <span class="t-prop">"lineage_id"</span>: chunk[<span class="t-str">"lineage_id"</span>]
+        })</code></pre>
+        </div>
+      </section>
+
+      <section class="section" id="knowledge-graph">
+        <div class="section-head">
+          <div><div class="section-num">Section 3</div><h2>Knowledge Graph</h2></div>
+          <p class="section-lead">The graph stores domain knowledge as entities and typed relationships, enabling version-aware retrieval and multi-hop reasoning that dense search alone cannot recover reliably.</p>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi"><div class="label">Production graph size</div><div class="value">18,035 nodes</div></div>
+          <div class="kpi"><div class="label">Node ontology</div><div class="value">10 node types</div></div>
+          <div class="kpi"><div class="label">Relation ontology</div><div class="value">10 relation types</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="card">
+            <h3>Ontology design</h3>
+            <p>The ontology should reflect the way experts talk about the domain. Typical node types include <strong>Design</strong>, <strong>Version</strong>, <strong>Error</strong>, <strong>Fix</strong>, <strong>DRCRule</strong>, <strong>Constraint</strong>, <strong>FlowStage</strong>, <strong>Tool</strong>, <strong>Metric</strong>, and <strong>Artifact</strong>.</p>
+            <p>Representative relation types include <strong>HAS_ERROR</strong>, <strong>RESOLVED_BY</strong>, <strong>AFFECTS_STAGE</strong>, <strong>USES_TOOL</strong>, <strong>VIOLATES_RULE</strong>, <strong>GENERATES_CONSTRAINT</strong>, <strong>MEASURES</strong>, <strong>REFERENCES</strong>, <strong>RUNS_ON</strong>, and <strong>DIVERGES_FROM</strong>.</p>
+          </div>
+          <div class="card">
+            <h3>Triple extraction</h3>
+            <p>Triple extraction converts unstructured text into graph facts by identifying entities, linking aliases, and assigning typed relations. The extraction pass should preserve provenance so every node or edge can be traced back to the document chunk that created it.</p>
+            <p>In practice, this lets you ground answers with graph-supported evidence instead of treating graph facts as opaque derived metadata.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Capability</th><th>How the graph helps</th><th>Why it matters</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Version awareness</td><td>Relations like <code>RUNS_ON</code> and <code>DIVERGES_FROM</code> connect tools, designs, rules, and fixes to specific versions.</td><td>Many engineering failures are not generic; they only appear after a version change.</td></tr>
+              <tr><td>Entity-centric retrieval</td><td>Detected entities trigger targeted subgraph expansion around the most relevant nodes.</td><td>Retrieval becomes context-aware before prompting the model.</td></tr>
+              <tr><td>Multi-hop reasoning</td><td>Traversal can follow chains like Design → Error → Fix → Version.</td><td>This supports diagnosis and comparison questions that span multiple documents.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>Example traversal pattern</span><span>Cypher-style pseudocode</span></div>
+          <pre><code><span class="t-key">MATCH</span> (d:<span class="t-typ">Design</span>)-[:<span class="t-prop">HAS_ERROR</span>]-&gt;(e:<span class="t-typ">Error</span>)
+      -[:<span class="t-prop">RESOLVED_BY</span>]-&gt;(f:<span class="t-typ">Fix</span>)
+      -[:<span class="t-prop">RUNS_ON</span>]-&gt;(v:<span class="t-typ">Version</span>)
+<span class="t-key">WHERE</span> d.name = <span class="t-str">$design_name</span>
+<span class="t-key">RETURN</span> e, f, v
+<span class="t-key">ORDER BY</span> v.release_date <span class="t-key">DESC</span></code></pre>
+        </div>
+
+        <div class="callout"><p><strong>Implementation principle:</strong> make version edges first-class citizens. In operational domains, the difference between “works” and “fails” is often a branch, tool release, or rule-set divergence rather than the design itself.</p></div>
+      </section>
+
+      <section class="section" id="hybrid-retrieval">
+        <div class="section-head">
+          <div><div class="section-num">Section 4</div><h2>Hybrid Retrieval (GraphRAG)</h2></div>
+          <p class="section-lead">Hybrid retrieval combines semantic search, lexical search, and graph expansion so the system can answer both fuzzy conceptual questions and exact engineering lookups with the same API.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Query classification</h3>
+            <p>The router classifies each question into one of five task families: <strong>error_diagnosis</strong>, <strong>version_comparison</strong>, <strong>drc_rule_lookup</strong>, <strong>constraint_generation</strong>, and <strong>optimization_strategy</strong>. This category determines which retrieval channels should dominate and how the final answer should be structured.</p>
+          </div>
+          <div class="card">
+            <h3>Retrieval channels</h3>
+            <p><strong>Dense retrieval</strong> uses Voyage embeddings against Weaviate, <strong>sparse retrieval</strong> uses BM25, and <strong>graph expansion</strong> queries Neo4j around detected entities. The fusion layer merges these candidate sets, then a cross-encoder reranker picks the most useful context for synthesis.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Primary evidence</th><th>Typical output shape</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>error_diagnosis</td><td>Graph neighborhoods + relevant chunks</td><td>Cause, affected version context, remediation path</td></tr>
+              <tr><td>version_comparison</td><td>Graph divergence edges + documents from both versions</td><td>Changed behavior, likely impact, migration guidance</td></tr>
+              <tr><td>drc_rule_lookup</td><td>Lexical matches + structured rule nodes</td><td>Rule meaning, trigger conditions, design implications</td></tr>
+              <tr><td>constraint_generation</td><td>Examples, patterns, and graph-linked artifacts</td><td>Suggested constraint template with rationale</td></tr>
+              <tr><td>optimization_strategy</td><td>Dense conceptual retrieval + graph-connected evidence</td><td>Trade-offs, levers, recommended next steps</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>Retriever orchestration sketch</span><span>Python-style pseudocode</span></div>
+          <pre><code>category = <span class="t-fn">classify_query</span>(query)
+entities = <span class="t-fn">detect_entities</span>(query)
+
+dense_hits = <span class="t-fn">weaviate_search</span>(query)
+sparse_hits = <span class="t-fn">bm25_search</span>(query)
+graph_hits = <span class="t-fn">neo4j_expand</span>(entities, category)
+
+candidates = <span class="t-fn">fuse_results</span>(dense_hits, sparse_hits, graph_hits)
+ranked = <span class="t-fn">cross_encoder_rerank</span>(query, candidates)
+context = ranked[:<span class="t-num">k</span>]
+answer = <span class="t-fn">claude_synthesize</span>(query, category, context)</code></pre>
+        </div>
+
+        <div class="callout"><p><strong>Key design insight:</strong> graph expansion is not a replacement for vector retrieval. It is a targeted precision boost that recovers entity relationships and version-specific paths the embedding model may never place close together in vector space.</p></div>
+      </section>
+
+      <section class="section" id="streaming-api">
+        <div class="section-head">
+          <div><div class="section-num">Section 5</div><h2>Streaming API</h2></div>
+          <p class="section-lead">The backend streams response progress immediately using Server-Sent Events so the frontend can display metadata, partial text, and completion stats in real time.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card"><h3>FastAPI + SSE</h3><p>Use FastAPI to expose an HTTP endpoint that returns an <code>text/event-stream</code> response. SSE is a good fit when the client only needs one-way live updates from the server during generation.</p></div>
+          <div class="card"><h3>Event model</h3><p>Emit three event types: <code>meta</code> for instant metadata, <code>token</code> for incremental answer text, and <code>done</code> for completion metrics such as total latency and token counts.</p></div>
+          <div class="card"><h3>Reverse proxy behavior</h3><p>When deployed behind Nginx, set <code>proxy_buffering off</code> so clients receive tokens as soon as they are generated. Pair the API with HTTPS via Let’s Encrypt and configure CORS for the expected frontend origins.</p></div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>SSE event contract</span><span>Wire format</span></div>
+          <pre><code><span class="t-tag">event</span>: meta
+<span class="t-tag">data</span>: {<span class="t-str">"category"</span>:<span class="t-str">"error_diagnosis"</span>,<span class="t-str">"graph_facts"</span>:<span class="t-num">6</span>,<span class="t-str">"chunks"</span>:<span class="t-num">9</span>}
+
+<span class="t-tag">event</span>: token
+<span class="t-tag">data</span>: {<span class="t-str">"text"</span>:<span class="t-str">"The likely root cause is ..."</span>}
+
+<span class="t-tag">event</span>: done
+<span class="t-tag">data</span>: {<span class="t-str">"latency_ms"</span>:<span class="t-num">4200</span>,<span class="t-str">"prompt_tokens"</span>:<span class="t-num">3780</span>,<span class="t-str">"answer_tokens"</span>:<span class="t-num">612</span>}</code></pre>
+        </div>
+
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="mini-card"><h4>Nginx deployment note</h4><p>Ensure the reverse proxy forwards long-lived responses correctly and keeps buffering disabled for the streaming endpoint. Without that setting, the user sees a delayed block of text instead of a live answer.</p></div>
+          <div class="mini-card"><h4>Frontend integration</h4><p>The frontend only needs a lightweight event parser and a few UI states: pending, streaming, complete, and error. This keeps the dashboard portable enough to host separately from the API.</p></div>
+        </div>
+      </section>
+
+      <section class="section" id="frontend-dashboard">
+        <div class="section-head">
+          <div><div class="section-num">Section 6</div><h2>Frontend Dashboard</h2></div>
+          <p class="section-lead">The frontend is intentionally simple: one polished single-page HTML application that visualizes the system, benchmarks, and live demo without introducing heavy client-side dependencies.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Information architecture</h3>
+            <p>The dashboard is a single-page HTML interface with four tabs: <strong>Overview</strong>, <strong>Evaluation</strong>, <strong>Try Copilot</strong>, and <strong>Reproducibility</strong>. That split lets one file serve as a product page, experiment report, demo surface, and replication guide.</p>
+          </div>
+          <div class="card">
+            <h3>Interactive answer experience</h3>
+            <p>The demo tab includes an SSE parser, a blinking cursor during generation, seed query pills for rapid testing, a debug strip, and a copy-answer button. The interface is minimal, but it exposes enough retrieval telemetry to make system behavior legible.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>UI element</th><th>Purpose</th><th>Recommended behavior</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Overview tab</td><td>Summarize architecture, findings, and cost story</td><td>Lead with the core claim and the end-to-end system diagram.</td></tr>
+              <tr><td>Evaluation tab</td><td>Show benchmark results and sample cases</td><td>Use charts, tables, and expandable examples for depth.</td></tr>
+              <tr><td>Try Copilot tab</td><td>Interactive live query experience</td><td>Support streaming updates, seed prompts, and copy answer.</td></tr>
+              <tr><td>Reproducibility tab</td><td>Explain data, methods, and deployment</td><td>Keep this precise enough that another builder can recreate the stack.</td></tr>
+              <tr><td>Debug strip</td><td>Expose system internals during demo</td><td>Show Category, Graph facts, Chunks, Prompt tokens, Answer tokens, and Latency.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>Browser-side streaming loop</span><span>JavaScript sketch</span></div>
+          <pre><code><span class="t-key">const</span> source = <span class="t-key">new</span> <span class="t-fn">EventSource</span>(endpoint);
+
+source.<span class="t-fn">addEventListener</span>(<span class="t-str">"meta"</span>, evt =&gt; {
+  <span class="t-key">const</span> meta = <span class="t-fn">JSON.parse</span>(evt.data);
+  <span class="t-fn">renderDebugStrip</span>(meta);
+});
+
+source.<span class="t-fn">addEventListener</span>(<span class="t-str">"token"</span>, evt =&gt; {
+  <span class="t-key">const</span> payload = <span class="t-fn">JSON.parse</span>(evt.data);
+  answerBuffer += payload.text;
+  <span class="t-fn">renderStreamingAnswer</span>(answerBuffer, <span class="t-key">true</span>);
+});
+
+source.<span class="t-fn">addEventListener</span>(<span class="t-str">"done"</span>, evt =&gt; {
+  <span class="t-key">const</span> done = <span class="t-fn">JSON.parse</span>(evt.data);
+  <span class="t-fn">renderFinalStats</span>(done);
+  source.<span class="t-fn">close</span>();
+});</code></pre>
+        </div>
+
+        <div class="callout"><p><strong>Deployment advantage:</strong> a single-file dashboard is easy to host, easy to archive with a paper or report, and easy to mirror on static hosting without a frontend build system.</p></div>
+      </section>
+
+      <section class="section" id="fine-tuning">
+        <div class="section-head">
+          <div><div class="section-num">Section 7</div><h2>Fine-Tuning (QLoRA)</h2></div>
+          <p class="section-lead">Fine-tuning was used as a comparison track rather than the production serving stack, making it possible to benchmark retrieval-heavy prompting against a compact adapted open-weight model.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Training setup</h3>
+            <ul class="bullet-list">
+              <li><strong>Base model:</strong> Llama-3-8B.</li>
+              <li><strong>Method:</strong> QLoRA with 4-bit quantization to reduce memory cost during training.</li>
+              <li><strong>Data:</strong> synthetic Q&amp;A pairs generated from the domain corpus.</li>
+              <li><strong>Output:</strong> adapter weights merged for deployment-style evaluation.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Role in the overall system</h3>
+            <p>The fine-tuned model was useful for controlled evaluation and ablation-style comparison. Production answer generation still used the Claude API because the retrieved-context synthesis quality remained stronger and more reliable in the live system.</p>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>Training lifecycle</span><span>Conceptual workflow</span></div>
+          <pre><code><span class="t-key">base_model</span> = <span class="t-str">"Llama-3-8B"</span>
+train_set = <span class="t-fn">build_synthetic_qa_pairs</span>(corpus)
+qlora_adapter = <span class="t-fn">train_qlora</span>(base_model, train_set, quantization=<span class="t-str">"4-bit"</span>)
+merged_model = <span class="t-fn">merge_adapter</span>(base_model, qlora_adapter)
+results = <span class="t-fn">evaluate_on_edabench</span>(merged_model)</code></pre>
+        </div>
+      </section>
+
+      <section class="section" id="evaluation">
+        <div class="section-head">
+          <div><div class="section-num">Section 8</div><h2>Evaluation (EDABench)</h2></div>
+          <p class="section-lead">The evaluation framework measures whether the architecture improves practical answer quality, not just retrieval accuracy. The benchmark mixes real engineering cases with structured category coverage.</p>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi"><div class="label">Benchmark size</div><div class="value">120 samples</div></div>
+          <div class="kpi"><div class="label">Verified real seeds</div><div class="value">7 samples</div></div>
+          <div class="kpi"><div class="label">Mean answer quality</div><div class="value">0.482</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="card">
+            <h3>Benchmark composition</h3>
+            <p>EDABench contains 120 samples distributed across the five main query categories. Seven of those are verified seed cases drawn from real ORFS experiments, anchoring the benchmark in practical failure and optimization scenarios rather than synthetic prompts alone.</p>
+          </div>
+          <div class="card">
+            <h3>Judge-based scoring</h3>
+            <p>Answers are scored on <strong>factual accuracy</strong>, <strong>completeness</strong>, <strong>actionability</strong>, and <strong>specificity</strong>. This makes the metric closer to what an engineer values when using a system for troubleshooting or design guidance.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Key result</th><th>Value</th><th>Interpretation</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Quality improvement over standalone LLM</td><td>21.9×</td><td>Hybrid retrieval plus graph grounding materially improves useful answer quality.</td></tr>
+              <tr><td>Graph hit rate</td><td>67.5%</td><td>Most benchmark questions benefited from graph-retrieved evidence.</td></tr>
+              <tr><td>Mean answer quality</td><td>0.482</td><td>The stack achieved consistent mid-to-high usefulness across mixed categories.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout"><p><strong>Evaluation takeaway:</strong> the gain came from architecture, not just prompting. Routing, graph expansion, fusion retrieval, and reranking together changed answer quality by an order of magnitude relative to a standalone model baseline.</p></div>
+      </section>
+
+      <section class="section" id="deployment-checklist">
+        <div class="section-head">
+          <div><div class="section-num">Section 9</div><h2>Deployment Checklist</h2></div>
+          <p class="section-lead">The deployment stack separates the static frontend from the streaming backend, keeping hosting simple while still supporting real-time inference and reproducible operations.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="checklist">
+            <h3>Backend deployment</h3>
+            <ul>
+              <li>Provision an Ubuntu VPS for the API service.</li>
+              <li>Create a Python virtual environment and install backend dependencies.</li>
+              <li>Run the API through a <code>systemd</code> service for automatic startup and restarts.</li>
+              <li>Place Nginx in front of the API as the reverse proxy.</li>
+              <li>Set <code>proxy_buffering off</code> on the streaming route.</li>
+              <li>Issue an SSL certificate with Let’s Encrypt and automate renewals with certbot.</li>
+              <li>Store secrets in environment variables rather than in source files.</li>
+              <li>Include general input validation and abuse prevention controls.</li>
+            </ul>
+          </div>
+          <div class="checklist">
+            <h3>Frontend and operations</h3>
+            <ul>
+              <li>Host the single-page frontend on GitHub Pages.</li>
+              <li>Point the frontend to the API domain over HTTPS.</li>
+              <li>Configure CORS for the allowed frontend origins.</li>
+              <li>Add a GitHub Actions keepalive ping if the backend platform benefits from periodic traffic.</li>
+              <li>Document environment setup, data loading, and benchmark steps for reproducibility.</li>
+              <li>Keep the dashboard self-contained so the public demo is easy to redeploy.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-top"><span>Minimal service outline</span><span>Deployment sketch</span></div>
+          <pre><code><span class="t-com"># Backend service lifecycle</span>
+<span class="t-key">1.</span> create_virtualenv()
+<span class="t-key">2.</span> install_backend_dependencies()
+<span class="t-key">3.</span> configure_environment_variables()
+<span class="t-key">4.</span> register_systemd_service()
+<span class="t-key">5.</span> place_nginx_reverse_proxy_in_front()
+<span class="t-key">6.</span> enable_https_with_lets_encrypt()
+<span class="t-key">7.</span> publish_frontend_to_github_pages()</code></pre>
+        </div>
+      </section>
+
+      <section class="section" id="cost-analysis">
+        <div class="section-head">
+          <div><div class="section-num">Section 10</div><h2>Cost Analysis</h2></div>
+          <p class="section-lead">A key result of the project is that a polished domain-specific GraphRAG system can be built and operated at modest cost when storage, serving, and evaluation are engineered carefully.</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Cost component</th><th>Value</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Total build cost</td><td>$240 over 16 weeks</td><td>Includes experimentation, evaluation iteration, and deployment work.</td></tr>
+              <tr><td>Per-query inference cost</td><td>~$0.01</td><td>Approximate input and output token cost on Claude Sonnet.</td></tr>
+              <tr><td>Monthly infrastructure</td><td>~$3 VPS</td><td>Low-cost backend hosting for the streaming API.</td></tr>
+              <tr><td>Vector store</td><td>Weaviate sandbox</td><td>Free tier suitable for early-stage experimentation.</td></tr>
+              <tr><td>Graph database</td><td>Neo4j Aura</td><td>Free tier sufficient for this graph scale.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout"><p><strong>Budget lesson:</strong> most of the value came from architecture and evaluation discipline rather than expensive infrastructure. Thoughtful corpus design and retrieval strategy mattered more than larger compute budgets.</p></div>
+      </section>
+
+      <section class="section" id="lessons-learned">
+        <div class="section-head">
+          <div><div class="section-num">Section 11</div><h2>Lessons Learned</h2></div>
+          <p class="section-lead">The strongest outcomes came from decisions that improved groundedness, observability, and deployment simplicity rather than from adding more model complexity.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card"><h3>Version-aware graph edges</h3><p>Version-aware edges were essential for error diagnosis. They let the system connect symptoms, fixes, and behavioral changes to the correct release context rather than blending incompatible evidence.</p></div>
+          <div class="card"><h3>Hybrid retrieval wins</h3><p>Hybrid retrieval outperformed pure vector search by 21.9× in answer quality. The graph made retrieval smarter, while dense and sparse channels preserved broad recall.</p></div>
+          <div class="card"><h3>Streaming changes perception</h3><p>SSE streaming improved perceived latency dramatically, with users seeing the first words in roughly 2–3 seconds instead of waiting around 15 seconds for a full response block.</p></div>
+          <div class="card"><h3>Secret scanning matters</h3><p>Pre-commit secret scanning is worth adopting early. It lowers the chance that operational credentials leak during rapid iteration, especially when code and deployment config evolve together.</p></div>
+          <div class="card"><h3>Single-file frontend</h3><p>A single-file HTML dashboard simplified deployment, review, and archiving. It also made the project easy to host on static infrastructure with almost no frontend operational overhead.</p></div>
+          <div class="card"><h3>Evaluation drives design</h3><p>Clear benchmark categories and judge criteria made architectural choices easier. Without a targeted benchmark, it is difficult to tell whether a retrieval change actually improves engineering usefulness.</p></div>
+        </div>
+      </section>
+
+      <section class="section" id="next-project-template">
+        <div class="section-head">
+          <div><div class="section-num">Section 12</div><h2>Next Project Template</h2></div>
+          <p class="section-lead">This architecture is portable. To adapt it to a new domain, keep the runtime skeleton and evaluation discipline, then swap in new corpus sources, ontology decisions, and benchmark tasks.</p>
+        </div>
+
+        <div class="template-grid">
+          <div class="checklist">
+            <h3>What to replace</h3>
+            <ul>
+              <li>Corpus sources and ingest connectors</li>
+              <li>Knowledge graph ontology and entity aliases</li>
+              <li>Query categories used by the router</li>
+              <li>Seed benchmarks and judge rubrics tied to the new domain</li>
+              <li>Domain-specific answer templates and prompt framing</li>
+            </ul>
+          </div>
+          <div class="checklist">
+            <h3>What to keep</h3>
+            <ul>
+              <li>FastAPI + SSE API structure</li>
+              <li>Hybrid retrieval pipeline with dense, sparse, and graph channels</li>
+              <li>Fusion and reranking stage</li>
+              <li>Evaluation framework and benchmark-first iteration loop</li>
+              <li>Static frontend deployment and lightweight backend operations</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-card" style="margin-top:18px;">
+          <h3>Step-by-step adaptation checklist</h3>
+          <ol class="bullet-list">
+            <li>Define the exact expert tasks your assistant must support.</li>
+            <li>Collect heterogeneous corpus sources and normalize them into one schema.</li>
+            <li>Deduplicate and chunk the corpus, then embed it into a vector store.</li>
+            <li>Design a domain ontology with node and edge types that reflect expert reasoning.</li>
+            <li>Extract triples and load a graph database with provenance-aware entities.</li>
+            <li>Build a router that maps user questions into retrieval categories.</li>
+            <li>Implement dense, sparse, and graph expansion retrieval in parallel.</li>
+            <li>Add fusion, reranking, and grounded answer synthesis.</li>
+            <li>Expose everything through a streaming API and a simple demo dashboard.</li>
+            <li>Create a benchmark with real seed cases and score for usefulness, not just relevance.</li>
+            <li>Deploy the frontend and backend separately, then iterate against benchmark failures.</li>
+          </ol>
+          <a class="top-link" href="#top">↑ Back to top</a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const sections = Array.from(document.querySelectorAll('section[id]'));
+  const navLinks = Array.from(document.querySelectorAll('.nav-link'));
+  const linkMap = new Map(navLinks.map(link => [link.getAttribute('href').slice(1), link]));
+
+  const setActive = id => {
+    navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${id}`));
+  };
+
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries
+      .filter(entry => entry.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+    if (visible[0]) setActive(visible[0].target.id);
+  }, {
+    rootMargin: '-18% 0px -62% 0px',
+    threshold: [0.15, 0.35, 0.6]
+  });
+
+  sections.forEach(section => observer.observe(section));
+  if (sections[0]) setActive(sections[0].id);
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      navLinks.forEach(item => item.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+
+  if (window.location.hash) {
+    const target = window.location.hash.slice(1);
+    if (linkMap.has(target)) setActive(target);
+  }
+})();
+</script>
+</body>
+</html>
