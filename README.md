@@ -6,6 +6,8 @@ Oguzhan Tekin · Machine Learning and AI Researcher · Toronto, Canada
 
 🌐 [Live Dashboard](https://oguzhan-canada.github.io/eda-copilot/) · 📄 [Research Paper](docs/paper/research_paper.pdf) · 📊 [Progress Trail](PROGRESS.md) · 🏗️ [Architecture Guide](https://oguzhan-canada.github.io/eda-copilot/architecture-guide.html) · 💰 [Cost Optimization Paper](https://oguzhan-canada.github.io/eda-copilot/cost-optimization.html)
 
+> 🔗 This project is a case study for the [AI Inference Cost Optimizer](https://github.com/oguzhan-canada/ai-inference-cost-optimizer) — a FinOps decision assistant for AI inference routing.
+
 Chip designers spend enormous amounts of time searching through tool logs, version changelogs, and community forums to diagnose failures they have already seen before. This project builds a smarter assistant — one that doesn't just search text, but actually understands the relationships between errors, fixes, tool versions, and design rules. By combining a Neo4j knowledge graph with vector search and a large language model, the system answers chip design questions with 21.9× higher quality than a standalone LLM, while citing exactly which documents and graph relationships informed each answer — all built for $240 on open-source tools.
 
 ---
