@@ -18,7 +18,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import anthropic
@@ -76,7 +75,15 @@ class HealthResponse(BaseModel):
 
 # ── Rate limiting ─────────────────────────────────────────────────────────
 
-limiter = Limiter(key_func=get_remote_address)
+def get_real_ip(request: Request) -> str:
+    """Get real client IP from nginx X-Real-IP / X-Forwarded-For headers."""
+    return (
+        request.headers.get("X-Real-IP")
+        or (request.headers.get("X-Forwarded-For", "").split(",")[0].strip())
+        or request.client.host
+    )
+
+limiter = Limiter(key_func=get_real_ip)
 
 logger = logging.getLogger("eda-copilot")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
@@ -143,7 +150,7 @@ async def query(request: Request, body: QueryRequest):
         "QUERY | endpoint=/query | tokens_in=%s | tokens_out=%s | latency=%dms | category=%s | ip=%s",
         usage.get("input_tokens", "?"), usage.get("output_tokens", "?"),
         int(latency), result.get("task_category", "unknown"),
-        get_remote_address(request),
+        get_real_ip(request),
     )
 
     return QueryResponse(
@@ -222,7 +229,7 @@ async def query_stream(request: Request, body: QueryRequest):
             latency_ms, input_tokens, output_tokens,
             result.get("task_category", "unknown"),
             len(result.get("graph_facts", [])), len(result.get("chunks", [])),
-            get_remote_address(request),
+            get_real_ip(request),
         )
         done = {"type": "done", "latency_ms": latency_ms, "input_tokens": input_tokens, "output_tokens": output_tokens}
         yield f"data: {json_lib.dumps(done)}\n\n"
