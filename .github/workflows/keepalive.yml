@@ -1,0 +1,9 @@
+name: Keep API warm
+on:
+  schedule:
+    - cron: '*/4 * * * *'
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf https://api.oguzhantekin.com/health || true

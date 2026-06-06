@@ -676,6 +676,10 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
           <h4>swerv_wrapper ORFS run</h4>
           <p>swerv_wrapper ORFS sweep was deferred (requires 64 GB r6i.2xlarge). 9 of 12 planned runs completed. ibex 26Q1 SIGSEGV is upstream OpenROAD bug (26Q1-2900-gdf79404cd8), documented as ED-005.</p>
         </div>
+        <div class="miss-card">
+          <h4>ASAP7 PDK coverage</h4>
+          <p>ASAP7 (7nm academic PDK) rules are not in the corpus. Queries about ASAP7 design rules will return low-confidence answers. Adding ASAP7 documentation to the ingestion pipeline is planned for future work.</p>
+        </div>
       </div>
       <div class="intro-quote" style="margin-top:20px">
         <p>No research system ships without gaps, and being transparent about them is as important as reporting what works. Four areas need attention in upcoming work. First, the entity extractor currently cannot match PDK design rule IDs (like METAL1.S.1), which is why DRC Rule Lookup shows 0% graph hit rate despite reasonable answer quality — a straightforward regex pattern extension will fix this. Second, only 33 of the 120 EDABench items have full KG-grounded expected nodes annotated; the remaining 87 are scored on answer quality alone, which limits how precisely we can measure retrieval accuracy. Third, the swerv_wrapper design was excluded from the ORFS parameter sweep because it requires a 64 GB instance, meaning 3 of the 12 planned experimental runs were deferred. Finally, the Direct LLM baseline row in the paper contains numbers from a pre-fix evaluation run that need to be updated to the corrected values (AQ=0.022, Factual=0.207) before final submission. None of these limitations affect the core findings — the 21.9× improvement and 67.5% graph hit rate are measured on the components that work — but addressing them will strengthen both the benchmark and the system for future use.</p>
