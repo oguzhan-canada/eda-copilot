@@ -139,8 +139,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .skeleton-line{background:var(--navy3);border-radius:4px;height:16px;margin-bottom:8px;animation:shimmerPulse 1.5s ease-in-out infinite}
 .skeleton-line:nth-child(2){width:92%}
 .skeleton-line:nth-child(3){width:78%}
-.streaming-cursor{color:var(--teal);animation:blink 0.8s step-end infinite}
-@keyframes blink{50%{opacity:0}}
+.streaming-cursor{color:var(--teal);display:inline-block;animation:blink 0.8s step-end infinite;font-size:18px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes shimmerPulse{0%{opacity:.4}50%{opacity:.8}100%{opacity:.4}}
 .results-grid,.summary-grid,.case-grid{display:flex;gap:20px;flex-wrap:wrap}
 .results-grid>.chart-box,.summary-grid>.chart-box,.case-grid>.case-card{flex:1 1 320px}
@@ -952,7 +952,7 @@ function renderResponse(data){
   });
 }
 
-function renderStreaming(metadata) {
+function renderStreamStart(metadata) {
   document.getElementById('resetBtn').style.display = 'block';
   const citations = Array.isArray(metadata.citations) ? metadata.citations : [];
   const citationItems = citations.map(item => {
@@ -963,7 +963,7 @@ function renderStreaming(metadata) {
   document.getElementById('resultRoot').innerHTML = `
     <div class="answer-card">
       <div class="result-tag">Answer</div>
-      <div class="answer-text" id="streamText"><span class="streaming-cursor">▊</span></div>
+      <div class="answer-text" id="streamAnswer"><span class="streaming-cursor">▍</span></div>
     </div>
     <div class="citation-card">
       <button class="citation-header" id="citationToggle" type="button" aria-expanded="true">
@@ -978,8 +978,8 @@ function renderStreaming(metadata) {
     <div class="debug-card">
       <div class="big-stats">
         <div class="big-stat"><div class="num" style="color:var(--blue)">${escapeHTML(prettifyCategory(metadata.task_category))}</div><div class="lbl">Category</div></div>
-        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.graph_facts_count ?? 0))}</div><div class="lbl">Graph facts</div></div>
-        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.chunks_count ?? 0))}</div><div class="lbl">Chunks</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.graph_fact_count ?? 0))}</div><div class="lbl">Graph facts</div></div>
+        <div class="big-stat"><div class="num" style="color:var(--teal)">${escapeHTML(String(metadata.chunk_count ?? 0))}</div><div class="lbl">Chunks</div></div>
         <div class="big-stat"><div class="num" style="color:var(--gold)" id="streamLatency">…</div><div class="lbl">Latency</div></div>
       </div>
     </div>`;
@@ -1008,7 +1008,7 @@ async function submitQuery(forcedQuery){
   submitBtn.disabled = true;
   submitBtn.textContent = 'Querying…';
   renderLoading();
-  const startTime = performance.now();
+
   try {
     const res = await fetch(STREAM_URL, {
       method: 'POST',
@@ -1016,40 +1016,49 @@ async function submitQuery(forcedQuery){
       body: JSON.stringify({ query, search_mode: activeMode.toLowerCase(), top_k: topK })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let fullText = '';
-    let metadataParsed = false;
-    let metadata = {};
+    let buffer = '';
+    let answerText = '';
+    let meta = null;
+    let answerStarted = false;
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      if (!metadataParsed) {
-        const newlineIdx = chunk.indexOf('\n');
-        if (newlineIdx !== -1) {
-          try {
-            metadata = JSON.parse(chunk.slice(0, newlineIdx));
-          } catch(e) { metadata = {}; }
-          metadataParsed = true;
-          renderStreaming(metadata);
-          const textAfter = chunk.slice(newlineIdx + 1);
-          if (textAfter) {
-            fullText += textAfter;
-            document.getElementById('streamText').innerHTML = renderAnswerHTML(fullText) + '<span class="streaming-cursor">▊</span>';
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let payload;
+        try { payload = JSON.parse(line.slice(6)); } catch(e) { continue; }
+
+        if (payload.type === 'meta') {
+          meta = payload;
+          if (!answerStarted) {
+            answerStarted = true;
+            renderStreamStart(meta);
           }
-          continue;
+        }
+
+        if (payload.type === 'token') {
+          answerText += payload.text;
+          const el = document.getElementById('streamAnswer');
+          if (el) el.innerHTML = renderAnswerHTML(answerText) + '<span class="streaming-cursor">▍</span>';
+        }
+
+        if (payload.type === 'done') {
+          const el = document.getElementById('streamAnswer');
+          if (el) el.innerHTML = renderAnswerHTML(answerText);
+          const latEl = document.getElementById('streamLatency');
+          if (latEl) latEl.textContent = payload.latency_ms + 'ms';
         }
       }
-      fullText += chunk;
-      const el = document.getElementById('streamText');
-      if (el) el.innerHTML = renderAnswerHTML(fullText) + '<span class="streaming-cursor">▊</span>';
     }
-    const el = document.getElementById('streamText');
-    if (el) el.innerHTML = renderAnswerHTML(fullText);
-    const latency = Math.round(performance.now() - startTime);
-    const latEl = document.getElementById('streamLatency');
-    if (latEl) latEl.textContent = latency + 'ms';
   } catch (err) {
     renderError();
   } finally {

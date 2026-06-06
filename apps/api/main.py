@@ -126,9 +126,13 @@ async def query(request: QueryRequest):
 
 @app.post("/query/stream")
 async def query_stream(request: QueryRequest):
-    """Stream an EDA answer — words appear as Claude generates them."""
+    """Stream an EDA answer via SSE — metadata first, then tokens, then done."""
+    import json as json_lib
+
     if not retriever or not synthesizer:
         raise HTTPException(status_code=503, detail="Services not initialized")
+
+    t0 = time.time()
 
     result = retriever.retrieve(
         query=request.query,
@@ -143,17 +147,22 @@ async def query_stream(request: QueryRequest):
 
     user_message = f"## Context\n\n{context}\n\n## Query\n\n{request.query}\n\nRespond with a clear, detailed answer. Do NOT use JSON format — write a natural language answer. Cite source files inline."
 
-    import json as _json
-    metadata = {
-        "task_category": result.get("task_category", "unknown"),
-        "graph_facts_count": len(result.get("graph_facts", [])),
-        "chunks_count": len(result.get("chunks", [])),
-        "entities_found": result.get("entities_found", []),
-        "citations": [c.get("source_file", "") for c in result.get("chunks", []) if c.get("source_file")],
-    }
-
     async def generate():
-        yield _json.dumps(metadata) + "\n"
+        # First chunk: metadata so UI can show debug strip immediately
+        meta = {
+            "type": "meta",
+            "task_category": result.get("task_category", "unknown"),
+            "graph_fact_count": len(result.get("graph_facts", [])),
+            "chunk_count": len(result.get("chunks", [])),
+            "citations": [
+                c.get("source_file", "")
+                for c in result.get("chunks", [])
+                if c.get("source_file")
+            ],
+        }
+        yield f"data: {json_lib.dumps(meta)}\n\n"
+
+        # Stream Claude answer token by token
         client = anthropic.Anthropic(api_key=synthesizer.api_key)
         with client.messages.stream(
             model=synthesizer.model,
@@ -162,9 +171,22 @@ async def query_stream(request: QueryRequest):
             messages=[{"role": "user", "content": user_message}],
         ) as stream:
             for text in stream.text_stream:
-                yield text
+                chunk = {"type": "token", "text": text}
+                yield f"data: {json_lib.dumps(chunk)}\n\n"
 
-    return StreamingResponse(generate(), media_type="text/plain")
+        # Final chunk: latency
+        latency_ms = int((time.time() - t0) * 1000)
+        done = {"type": "done", "latency_ms": latency_ms}
+        yield f"data: {json_lib.dumps(done)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get("/health", response_model=HealthResponse)
