@@ -265,8 +265,8 @@ Modeled after the [MLCAD PROGRESS.md](https://github.com/oguzhan-canada/instrume
 **What was done**:
 
 **Neo4j Aura Provisioned**:
-- Instance: `0107393f` (free tier, sufficient for schema validation)
-- URI: `neo4j+s://0107393f.databases.neo4j.io`
+- Instance: Neo4j Aura free tier, sufficient for schema validation
+- URI: Set via `NEO4J_URI` environment variable
 - Schema applied: 13 constraints (10 uniqueness + 3 existence), 18 indexes (6 explicit + 10 constraint-backed + 2 system lookups)
 - All 4 seed bug triples loaded and verified (PASS on all)
 - Idempotency confirmed: re-run produces no duplicates
@@ -711,7 +711,7 @@ Created `pipeline/retrieve/chunk_documents.py` — content-type-aware chunking w
 
 ### 9.4 Weaviate Hybrid Search
 
-**Instance**: Weaviate Cloud sandbox tier (`1gyihhx9sesaf5wi94zu0g.c0.us-east-1.aws.weaviate.cloud`)
+**Instance**: Weaviate Cloud sandbox tier (set via `WEAVIATE_URL` environment variable)
 - 14-day TTL — will need re-provisioning or upgrade before Week 18
 - Collection: `EDADocument` with BYO vectors (no server-side vectorizer)
 
