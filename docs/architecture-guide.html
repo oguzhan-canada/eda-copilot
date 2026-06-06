@@ -431,7 +431,7 @@ hr.sep{border:none;height:1px;background:var(--border);margin:18px 0}
         <div class="grid-2">
           <div class="card">
             <h3>Query classification</h3>
-            <p>The router classifies each question into one of five task families: <strong>error_diagnosis</strong>, <strong>version_comparison</strong>, <strong>drc_rule_lookup</strong>, <strong>constraint_generation</strong>, and <strong>optimization_strategy</strong>. This category determines which retrieval channels should dominate and how the final answer should be structured.</p>
+            <p>The router classifies each question into one of five task families: <strong>error_diagnosis</strong>, <strong>rtl_qa</strong>, <strong>drc_rule_lookup</strong>, <strong>constraint_generation</strong>, and <strong>cross_tool_knowledge</strong>. This category determines which retrieval channels should dominate and how the final answer should be structured.</p>
           </div>
           <div class="card">
             <h3>Retrieval channels</h3>
@@ -446,10 +446,10 @@ hr.sep{border:none;height:1px;background:var(--border);margin:18px 0}
             </thead>
             <tbody>
               <tr><td>error_diagnosis</td><td>Graph neighborhoods + relevant chunks</td><td>Cause, affected version context, remediation path</td></tr>
-              <tr><td>version_comparison</td><td>Graph divergence edges + documents from both versions</td><td>Changed behavior, likely impact, migration guidance</td></tr>
+              <tr><td>rtl_qa</td><td>Vector retrieval + LoRA fallback</td><td>RTL design guidance, coding patterns, best practices</td></tr>
               <tr><td>drc_rule_lookup</td><td>Lexical matches + structured rule nodes</td><td>Rule meaning, trigger conditions, design implications</td></tr>
               <tr><td>constraint_generation</td><td>Examples, patterns, and graph-linked artifacts</td><td>Suggested constraint template with rationale</td></tr>
-              <tr><td>optimization_strategy</td><td>Dense conceptual retrieval + graph-connected evidence</td><td>Trade-offs, levers, recommended next steps</td></tr>
+              <tr><td>cross_tool_knowledge</td><td>GraphRAG-only retrieval across tool boundaries</td><td>Cross-tool interactions, compatibility, workflow guidance</td></tr>
             </tbody>
           </table>
         </div>
