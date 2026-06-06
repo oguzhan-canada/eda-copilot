@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cost Optimization in Production AI Systems: Building a Domain-Specific GraphRAG for $240</title>
+<meta name="description" content="A detailed cost optimization paper from the EDA Copilot project, documenting how a production GraphRAG system was built for $240 total and operated for about one cent per query.">
+<style>
+:root{
+  --bg:#0B1120; --navy2:#111827; --navy3:#1F2937; --navy4:#374151;
+  --fg:#F1F5F9; --dim:#94A3B8; --teal:#2DD4BF; --coral:#F97066;
+  --blue:#60A5FA; --gold:#FBBF24;
+  --border:rgba(148,163,184,.18);
+  --shadow:0 18px 48px rgba(0,0,0,.34);
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:linear-gradient(180deg,var(--bg) 0%,#0f172a 100%);
+  color:var(--fg);
+  font-family:'Calibri','Candara','Segoe UI',sans-serif;
+  line-height:1.72;
+}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline}
+p,li{color:var(--dim);font-size:17px}
+strong{color:var(--fg)}
+code,pre{font-family:Consolas,'Courier New',monospace}
+.page{
+  display:grid;
+  grid-template-columns:290px minmax(0,1fr);
+  gap:28px;
+  max-width:1500px;
+  margin:0 auto;
+  padding:24px;
+}
+.sidebar{
+  position:sticky;
+  top:24px;
+  height:calc(100vh - 48px);
+  overflow:auto;
+  background:rgba(17,24,39,.92);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:22px 18px;
+  box-shadow:var(--shadow);
+}
+.brand{
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:1.8px;
+  color:var(--teal);
+  margin-bottom:12px;
+}
+.side-title{font-size:22px;line-height:1.25;margin-bottom:10px}
+.side-note{font-size:14px;color:var(--dim);margin-bottom:18px}
+.nav-list{list-style:none;display:grid;gap:8px;margin-top:8px}
+.nav-link{
+  display:block;
+  padding:10px 12px;
+  border-radius:10px;
+  color:var(--dim);
+  border:1px solid transparent;
+  transition:.2s ease;
+  font-size:14px;
+}
+.nav-link:hover,.nav-link.active{
+  color:var(--fg);
+  border-color:var(--border);
+  background:rgba(45,212,191,.08);
+  text-decoration:none;
+}
+.sidebar-links{display:grid;gap:10px;margin-top:18px}
+.sidebar-links a{
+  display:block;
+  padding:10px 12px;
+  border-radius:10px;
+  background:var(--navy3);
+  border:1px solid var(--border);
+  font-size:14px;
+}
+.content{display:grid;gap:24px}
+.hero,.section-card{
+  background:rgba(17,24,39,.9);
+  border:1px solid var(--border);
+  border-radius:22px;
+  box-shadow:var(--shadow);
+}
+.hero{padding:34px}
+.section-card{padding:30px}
+.kicker{
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:1.7px;
+  color:var(--teal);
+  margin-bottom:10px;
+}
+.hero h1{
+  font-size:42px;
+  line-height:1.12;
+  margin-bottom:14px;
+}
+.subtitle{font-size:20px;color:var(--blue);margin-bottom:10px}
+.author{font-size:16px;color:var(--dim);margin-bottom:20px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 16px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--navy3);
+  color:var(--fg);
+}
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-top:24px;
+}
+.stat-card{
+  background:linear-gradient(180deg,rgba(31,41,55,.98),rgba(15,23,42,.98));
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+}
+.stat-num{font-size:32px;font-weight:700;color:var(--teal);line-height:1.1}
+.stat-label{font-size:13px;color:var(--dim);margin-top:6px;text-transform:uppercase;letter-spacing:1px}
+.section-card h2{font-size:31px;line-height:1.18;margin-bottom:16px}
+.section-card h3{font-size:23px;color:var(--fg);margin:24px 0 10px}
+.section-card h4{font-size:18px;color:var(--teal);margin:18px 0 8px}
+.section-card p + p,.section-card ul + p,.section-card table + p,.callout + p{margin-top:14px}
+.section-card ul{padding-left:22px;display:grid;gap:8px;margin-top:12px}
+.callout{
+  margin:20px 0;
+  padding:18px 20px;
+  border-left:4px solid var(--teal);
+  background:rgba(45,212,191,.08);
+  border-radius:0 14px 14px 0;
+}
+.callout strong{color:var(--teal)}
+.table-wrap{overflow:auto;margin-top:18px}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:700px;
+  font-size:15px;
+}
+thead th{
+  background:var(--navy3);
+  color:var(--teal);
+  text-align:left;
+  padding:12px 14px;
+  border-bottom:1px solid var(--navy4);
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  font-size:12px;
+}
+tbody tr:nth-child(odd){background:rgba(31,41,55,.78)}
+tbody tr:nth-child(even){background:rgba(11,17,32,.75)}
+td{
+  padding:12px 14px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+  color:var(--fg);
+}
+td.muted{color:var(--dim)}
+.highlight-row td:first-child{border-left:3px solid var(--teal)}
+.metric-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin-top:18px;
+}
+.metric-card{
+  background:var(--navy3);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+}
+.metric-title{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.metric-value{font-size:30px;font-weight:700;color:var(--fg);line-height:1.15}
+.metric-sub{font-size:14px;color:var(--dim);margin-top:6px}
+.split{
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:18px;
+  align-items:start;
+}
+.code-block{
+  margin-top:16px;
+  padding:18px;
+  background:#09111f;
+  border:1px solid var(--navy4);
+  border-radius:16px;
+  color:#dbeafe;
+  overflow:auto;
+  font-size:14px;
+  line-height:1.6;
+}
+.note-box{
+  margin-top:18px;
+  padding:16px 18px;
+  border:1px solid rgba(251,191,36,.28);
+  background:rgba(251,191,36,.08);
+  border-radius:14px;
+}
+.note-box p{color:var(--fg)}
+.footer{
+  text-align:center;
+  color:var(--dim);
+  padding:8px 0 24px;
+  font-size:14px;
+}
+@media (max-width:1100px){
+  .page{grid-template-columns:1fr}
+  .sidebar{position:relative;top:0;height:auto}
+}
+@media (max-width:800px){
+  .hero h1{font-size:32px}
+  .stat-grid,.metric-grid,.split{grid-template-columns:1fr}
+  .hero,.section-card{padding:24px}
+}
+@media print{
+  :root{
+    --bg:#ffffff; --navy2:#ffffff; --navy3:#f3f4f6; --navy4:#d1d5db;
+    --fg:#111827; --dim:#374151; --teal:#0f766e; --coral:#b91c1c;
+    --blue:#1d4ed8; --gold:#b45309; --border:rgba(17,24,39,.18); --shadow:none;
+  }
+  body{background:#fff;color:#111827}
+  .page{display:block;max-width:none;padding:0}
+  .sidebar{display:none}
+  .hero,.section-card{box-shadow:none;background:#fff;border:1px solid #d1d5db;break-inside:avoid;margin-bottom:16px}
+  a{color:#0f766e;text-decoration:none}
+  p,li{color:#374151}
+  td,th{color:#111827}
+  .code-block{background:#f3f4f6;color:#111827;border-color:#d1d5db}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <aside class="sidebar">
+    <div class="brand">EDA Copilot Paper</div>
+    <div class="side-title">Cost Optimization in Production AI Systems</div>
+    <p class="side-note">A detailed accounting of how EDA Copilot reached production-grade GraphRAG performance while staying far below budget.</p>
+    <ul class="nav-list">
+      <li><a class="nav-link" href="#abstract">Abstract</a></li>
+      <li><a class="nav-link" href="#introduction">1. Introduction</a></li>
+      <li><a class="nav-link" href="#budget">2. Budget Overview</a></li>
+      <li><a class="nav-link" href="#techniques">3. Cost Optimization Techniques</a></li>
+      <li><a class="nav-link" href="#achieved">4. What We Achieved</a></li>
+      <li><a class="nav-link" href="#scaling">5. Cost Scaling Projections</a></li>
+      <li><a class="nav-link" href="#recommendations">6. Recommendations</a></li>
+      <li><a class="nav-link" href="#conclusion">7. Conclusion</a></li>
+    </ul>
+    <div class="sidebar-links">
+      <a href="index.html">← Back to main dashboard</a>
+      <a href="architecture-guide.html">Architecture guide →</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <section class="hero">
+      <div class="kicker">Production AI Systems · Cost Engineering</div>
+      <a href="index.html">← Back to dashboard</a>
+      <h1>Cost Optimization in Production AI Systems: Building a Domain-Specific GraphRAG for $240</h1>
+      <p class="subtitle">Techniques and Results from the EDA Copilot Project</p>
+      <p class="author">Oguzhan Tekin · Machine Learning and AI Researcher · Toronto, Canada</p>
+      <p>This paper documents the concrete techniques that let EDA Copilot ship a live, domain-specific GraphRAG system at a total build cost of <strong>$240</strong>, compared with a <strong>$700</strong> budget. The central result is practical: disciplined systems design made it possible to operate the system for roughly <strong>one cent per question</strong> while still outperforming a standalone large language model by <strong>21.9×</strong> on EDABench.</p>
+      <div class="hero-actions">
+        <a class="pill" href="index.html">Main dashboard</a>
+        <a class="pill" href="architecture-guide.html">Architecture guide</a>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num">$240</div><div class="stat-label">Total build cost</div></div>
+        <div class="stat-card"><div class="stat-num">66%</div><div class="stat-label">Under budget</div></div>
+        <div class="stat-card"><div class="stat-num">~$0.01</div><div class="stat-label">Per-query cost</div></div>
+        <div class="stat-card"><div class="stat-num">$6/mo</div><div class="stat-label">At 10 queries/day</div></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="abstract">
+      <div class="kicker">Abstract</div>
+      <h2>Abstract</h2>
+      <p>EDA Copilot was built as a production-grade, domain-specific AI assistant for electronic design automation using a GraphRAG architecture: a knowledge graph for structured reasoning, a vector store for semantic retrieval, and a synthesis layer for final answer generation. The project finished at <strong>$240 total</strong> against a planned budget of <strong>$700</strong>, placing the system <strong>66% under budget</strong>.</p>
+      <p>The final operating profile is equally important. Queries cost approximately <strong>$0.01 each</strong>, monthly infrastructure is roughly <strong>$3</strong>, and a conservative light-usage API budget is about <strong>$5 per month</strong> at 10 queries per day. The key insight is that strategic use of free tiers, tiered processing, selective embedding, discounted batch processing, and server-sent event streaming eliminated <strong>more than $460</strong> in planned costs without degrading answer quality.</p>
+      <div class="callout"><strong>Key insight:</strong> cost optimization worked because expensive operations were treated as a scarce resource. Free infrastructure handled state, cheap rules handled structure, and the LLM was reserved for the small fraction of work that genuinely required it.</div>
+    </section>
+
+    <section class="section-card" id="introduction">
+      <div class="kicker">1. Introduction</div>
+      <h2>Building useful AI is often assumed to be expensive</h2>
+      <p>A persistent belief in applied AI is that production systems require large cloud bills from day one. In retrieval-augmented generation, that assumption often becomes self-fulfilling: commercial RAG platforms charge <strong>$50 to $500 per month</strong> before a single production query is answered. Add embeddings, storage, evaluation, and model tuning, and many independent researchers or small labs conclude that serious deployment is out of reach.</p>
+      <p>This paper shows a different path. EDA Copilot was built as a full GraphRAG system with a live API, a knowledge graph, a vector retrieval tier, domain-adapted generation, and an interactive dashboard for <strong>under $250</strong>. The point is not that every project can exactly match these figures, but that most early-stage domain-specific AI systems can be engineered far more efficiently than standard vendor defaults suggest.</p>
+      <p>The intended audience is researchers, graduate students, indie developers, and small applied AI teams who need production credibility without enterprise budgets. The techniques described here are practical, reproducible, and generalizable to other domain-specific RAG deployments.</p>
+    </section>
+
+    <section class="section-card" id="budget">
+      <div class="kicker">2. Budget Overview</div>
+      <h2>Budgeted versus actual spend</h2>
+      <p>The project budget was planned conservatively at <strong>$710</strong>. Actual build cost landed at <strong>$240</strong>, for a total savings of <strong>$470</strong>. One phase ran slightly over plan, but the overall portfolio of cost optimizations more than offset it.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Budgeted</th>
+              <th>Actual</th>
+              <th>Savings</th>
+              <th>Technique</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Corpus + Extraction (Phase 1)</td><td>$200</td><td>$224</td><td>-$24 (over)</td><td class="muted">Batch API pricing</td></tr>
+            <tr><td>Knowledge Graph (Phase 2)</td><td>$50</td><td>$0</td><td>$50</td><td class="muted">Neo4j Aura free tier</td></tr>
+            <tr><td>Vector Store (Phase 3.1)</td><td>$420</td><td>$0.26</td><td>$419.74</td><td class="muted">Voyage AI free tier</td></tr>
+            <tr><td>Integration (Phase 3.2)</td><td>$5</td><td>$0.01</td><td>$4.99</td><td class="muted">Local development</td></tr>
+            <tr><td>Fine-tuning (Phase 3.3)</td><td>$25</td><td>$9.09</td><td>$15.91</td><td class="muted">g4dn.xlarge spot pricing</td></tr>
+            <tr><td>EDABench (Phase 4.1)</td><td>$5</td><td>$1.50</td><td>$3.50</td><td class="muted">Batch API</td></tr>
+            <tr><td>System Eval (Phase 4.2)</td><td>$5</td><td>$3.00</td><td>$2.00</td><td class="muted">Batch API</td></tr>
+            <tr><td>Deployment</td><td>—</td><td>$3/mo</td><td>—</td><td class="muted">Budget VPS</td></tr>
+            <tr class="highlight-row"><td><strong>Total</strong></td><td><strong>$710</strong></td><td><strong>$240</strong></td><td><strong>$470 saved</strong></td><td><strong>Disciplined system design</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout"><strong>Interpretation:</strong> the largest savings did not come from one trick. They came from aligning each subsystem with the cheapest acceptable implementation: free graph storage, almost-free embeddings, discounted offline LLM calls, and a minimal deployment footprint.</div>
+    </section>
+
+    <section class="section-card" id="techniques">
+      <div class="kicker">3. Cost Optimization Techniques</div>
+      <h2>The engineering decisions that made the budget work</h2>
+
+      <h3>3.1 Free Tier Arbitrage</h3>
+      <p>Free tiers were not treated as temporary conveniences; they were treated as first-class architectural constraints. Neo4j Aura provided <strong>$0 graph storage</strong> for a knowledge graph containing <strong>18,035 nodes</strong> across <strong>10 relation types</strong>. A professional graph tier would typically cost about <strong>$65/month</strong>, so development alone avoided at least <strong>$50</strong> in planned spend and established an ongoing savings baseline.</p>
+      <p>The vector side followed the same logic. Weaviate Cloud Sandbox held <strong>8,958 objects</strong> at no recurring infrastructure cost, while GitHub Pages hosted the frontend at <strong>$0</strong>. SSL was handled with <strong>Let's Encrypt</strong>, avoiding the annual cost of commercial certificates.</p>
+      <p>The most dramatic example was embeddings. Voyage AI offered a <strong>200M token free tier</strong> for <code>voyage-code-2</code>. The project used <strong>2,072,736 tokens</strong>, or roughly <strong>1% of the free allocation</strong>. The original budget line was <strong>$420</strong>; actual spend was <strong>$0.26</strong>, making this component <strong>99.9% under budget</strong>.</p>
+      <div class="callout"><strong>Key insight:</strong> map the architecture to free tiers before implementation begins. If a storage, embedding, or hosting layer can fit comfortably inside a no-cost tier during development, design around that boundary instead of assuming a paid upgrade from the start.</div>
+
+      <h3>3.2 Anthropic Batch API (50% Savings on LLM Calls)</h3>
+      <p>Offline LLM workloads were routed through discounted batch processing wherever real-time turnaround was unnecessary. This included synthetic Q&amp;A generation, triple extraction, and benchmark judging. Across three generation runs, the system produced <strong>17,062 records</strong>. Standard API pricing would have been approximately <strong>$417</strong>; batch pricing reduced the spend to <strong>$208.64</strong>.</p>
+      <p>The batch endpoint mattered because it matched the project workflow. Data creation and evaluation are naturally asynchronous research tasks. Accepting up to 24 hours of turnaround cut the cost of the exact same model outputs in half.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Batch workload</th>
+              <th>Cost</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Generation run 1</td><td>$94.41</td><td class="muted">Largest synthetic data expansion pass</td></tr>
+            <tr><td>Generation run 2</td><td>$16.39</td><td class="muted">Targeted augmentation pass</td></tr>
+            <tr><td>Generation run 3</td><td>$22.49</td><td class="muted">Additional coverage refinement</td></tr>
+            <tr><td>Judging run 1</td><td>$52.45</td><td class="muted">Primary benchmark grading</td></tr>
+            <tr><td>Judging run 2</td><td>$9.23</td><td class="muted">Follow-up evaluation</td></tr>
+            <tr><td>Judging run 3</td><td>$13.67</td><td class="muted">System comparison grading</td></tr>
+            <tr class="highlight-row"><td><strong>Total</strong></td><td><strong>$208.64</strong></td><td><strong>Saved about $208 versus standard pricing</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3.3 Tiered Processing Architecture</h3>
+      <p>The project corpus contained <strong>7,351 files</strong>, but only <strong>390 files</strong>—just <strong>5.3%</strong>—were sent through expensive LLM extraction. Everything else was handled with lower-cost processing paths. Structured data used regex and parser-based extraction at <strong>$0</strong>. Semi-structured documents used templates and deterministic extraction at <strong>$0</strong>. Only the unstructured forum content required LLM-based triple extraction, at roughly <strong>$3 to $5 per batch</strong>.</p>
+      <p>This architecture also reduced downstream graph noise. Coreference resolution collapsed <strong>46,145 raw triples</strong> into <strong>4,940 unique triples</strong>, an <strong>89.3% deduplication rate</strong>. That meant fewer redundant edges, less storage overhead, and a higher signal-to-noise ratio during retrieval.</p>
+      <div class="split">
+        <div>
+          <div class="metric-card">
+            <div class="metric-title">Files needing LLM extraction</div>
+            <div class="metric-value">390 / 7,351</div>
+            <div class="metric-sub">Only 5.3% of the corpus touched the expensive path.</div>
+          </div>
+        </div>
+        <div>
+          <div class="metric-card">
+            <div class="metric-title">Triple deduplication</div>
+            <div class="metric-value">89.3%</div>
+            <div class="metric-sub">46,145 raw triples collapsed to 4,940 unique triples.</div>
+          </div>
+        </div>
+      </div>
+      <p>The larger lesson is simple: not every document deserves identical treatment. Cost falls sharply when extraction fidelity is matched to document structure.</p>
+
+      <h3>3.4 Smart Embedding Strategy</h3>
+      <p>The corpus was chunked into <strong>166,939 total chunks</strong>, but embedding every chunk would have wasted both money and retrieval quality. Instead, only <strong>8,958 priority chunks</strong> were embedded—<strong>5.4%</strong> of the total corpus. The selected material represented the highest-value knowledge sources for retrieval: <strong>3,803 forum Q&amp;A chunks</strong>, <strong>2,576 documentation chunks</strong>, <strong>2,570 ORFS timing report chunks</strong>, and <strong>9 ORFS report chunks</strong>.</p>
+      <p>Low-value or low-yield content was explicitly excluded. That included <strong>26,307 equivalence check logs</strong>, which offered essentially zero retrieval value for user questions, and <strong>125,511 source code chunks</strong>, which were deferred rather than embedded prematurely.</p>
+      <p>The result was a total embedding cost of <strong>$0.25</strong> across <strong>2,072,736 tokens</strong>. Quality impact was effectively zero because the retained set already covered the content categories most likely to answer user queries.</p>
+      <div class="callout"><strong>Selective embedding beats blanket embedding:</strong> vectors are only valuable when the chunk is likely to be retrieved. Excluding low-value logs and deferring code preserved both budget and retrieval precision.</div>
+
+      <h3>3.5 QLoRA Instead of Full Fine-Tuning</h3>
+      <p>Model adaptation used <strong>QLoRA with 4-bit quantization</strong> rather than full fine-tuning. A full fine-tune of Llama-3-8B would require roughly <strong>80GB VRAM</strong>, pushing the project toward A100-class hardware at around <strong>$3/hour</strong>. QLoRA fit on a <strong>16GB T4</strong> using a <code>g4dn.xlarge</code> spot instance priced at <strong>$0.526/hour</strong>.</p>
+      <p>Training ran for <strong>17 hours 16 minutes</strong>, for a total GPU cost of <strong>$9.09</strong>. That compares favorably with an estimated <strong>$50–100</strong> for a more traditional full fine-tuning path. More importantly, the lower-cost method still delivered meaningful quality: <strong>0.431 answer quality</strong> versus <strong>0.022</strong> for a direct standalone LLM baseline.</p>
+
+      <h3>3.6 Budget VPS Deployment</h3>
+      <p>Deployment was intentionally boring and cheap. A <strong>RackNerd VPS at $3/month</strong> with <strong>2GB RAM</strong> ran the API stack: FastAPI, uvicorn, nginx, and systemd. The same workload would cost roughly <strong>$15/month</strong> on AWS EC2 t3.small or <strong>$6/month</strong> on DigitalOcean.</p>
+      <p>That small server was sufficient for portfolio and demo traffic and handled <strong>10+ concurrent queries</strong>. The architecture did not need managed Kubernetes, serverless orchestration, or premium platform fees. It needed stable process supervision, a reverse proxy, and a low monthly bill.</p>
+
+      <h3>3.7 SSE Streaming (Perceived Latency Optimization)</h3>
+      <p>The system's end-to-end response time is typically <strong>7 to 15 seconds</strong>. Rather than paying for a second model tier or more infrastructure, the project improved user experience with <strong>server-sent events (SSE)</strong>. Streaming makes the first visible words appear in <strong>2 to 3 seconds</strong>, even though the full answer still completes on the original timeline.</p>
+      <p>The protocol is simple and cheap: <code>meta</code> is sent immediately, <code>tokens</code> stream as they arrive, and <code>done</code> closes with final metrics. nginx required <code>proxy_buffering off</code> so tokens reached the browser in real time. The result is an <strong>80% reduction in perceived latency</strong> with <strong>zero additional inference cost</strong>.</p>
+      <pre class="code-block">event: meta
+{ "stage": "retrieval_complete" }
+
+event: tokens
+{ "delta": "The timing regression is likely caused by..." }
+
+event: done
+{ "latency_ms": 9200, "citations": 4 }</pre>
+
+      <h3>3.8 Context Window Optimization</h3>
+      <p>Per-query cost stayed low because the system avoided sending the entire corpus—or even the entire available context window—to the synthesis model. Each query typically sends about <strong>800 to 1,600 input tokens</strong>. Context is capped at <strong>6,000 tokens</strong> (about <strong>24K characters</strong>) and usually contains only the top <strong>3 to 5 reranked chunks</strong>. The system prompt is intentionally compact at about <strong>80 tokens</strong>.</p>
+      <p>This token discipline produces a cost profile of roughly <strong>$0.005 input</strong> and <strong>$0.006 output</strong> per query, or about <strong>$0.01 total</strong>. At 10 queries per day, API cost remains only a few dollars per month.</p>
+      <pre class="code-block">query_cost ≈ input_tokens_cost + output_tokens_cost
+≈ $0.005 + $0.006
+≈ $0.01 per question</pre>
+
+      <h3>3.9 Single-File Frontend</h3>
+      <p>The dashboard is a single, self-contained HTML document of roughly <strong>75KB</strong>. It includes four tabs, Chart.js visualizations, SSE streaming, and responsive layout logic without React, npm, webpack, or a build step. Hosting on GitHub Pages keeps the frontend cost at <strong>$0</strong>, and there is effectively no CI or deployment overhead for the presentation layer.</p>
+      <p>The trade-off is maintainability at larger scales. A single-file frontend would become cumbersome in a much larger product. But for a research artifact, portfolio system, or compact production demo, the simplicity is an advantage: fewer dependencies, fewer failure points, and almost no operational cost.</p>
+      <div class="note-box"><p><strong>Pragmatic trade-off:</strong> architecture should match project scale. A single-file frontend is not a universal pattern, but for a sub-100KB research dashboard it is often the lowest-cost and lowest-friction solution.</p></div>
+    </section>
+
+    <section class="section-card" id="achieved">
+      <div class="kicker">4. What We Achieved</div>
+      <h2>Cost savings did not come at the expense of quality</h2>
+      <p>The system that emerged from these optimizations was not a stripped-down prototype. It delivered materially better answer quality than a bare LLM while preserving a lightweight operating envelope.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Metric</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Total build cost</td><td>$240</td></tr>
+            <tr><td>Per-query cost</td><td>~$0.01</td></tr>
+            <tr><td>Monthly infrastructure</td><td>$3</td></tr>
+            <tr><td>Answer quality (EDABench)</td><td>0.482</td></tr>
+            <tr><td>Improvement vs standalone LLM</td><td>21.9×</td></tr>
+            <tr><td>Graph hit rate</td><td>67.5%</td></tr>
+            <tr><td>Knowledge graph nodes</td><td>18,035</td></tr>
+            <tr><td>Vector store objects</td><td>8,958</td></tr>
+            <tr><td>Streaming perceived latency</td><td>2–3 seconds</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-title">Answer quality</div>
+          <div class="metric-value">0.482</div>
+          <div class="metric-sub">Strong benchmark performance for a narrowly targeted domain assistant.</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Improvement over bare LLM</div>
+          <div class="metric-value">21.9×</div>
+          <div class="metric-sub">The retrieval and graph layers changed quality far more than they changed cost.</div>
+        </div>
+      </div>
+      <div class="callout"><strong>The main result:</strong> the full GraphRAG system outperformed a standalone LLM by <strong>21.9×</strong> while operating at about <strong>$0.01 per query</strong>. The evidence suggests that disciplined retrieval architecture can improve quality and reduce total ownership cost simultaneously.</div>
+    </section>
+
+    <section class="section-card" id="scaling">
+      <div class="kicker">5. Cost Scaling Projections</div>
+      <h2>How the economics change with usage</h2>
+      <p>The project was optimized for light-to-moderate usage, but its cost structure remains favorable as traffic rises. Infrastructure grows slowly at first, while inference cost scales roughly linearly with query volume.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Daily queries</th>
+              <th>Monthly API</th>
+              <th>Monthly infra</th>
+              <th>Total/month</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>10</td><td>$3</td><td>$3</td><td>$6</td></tr>
+            <tr><td>50</td><td>$15</td><td>$3</td><td>$18</td></tr>
+            <tr><td>100</td><td>$30</td><td>$6</td><td>$36</td></tr>
+            <tr><td>500</td><td>$150</td><td>$12</td><td>$162</td></tr>
+            <tr><td>1,000</td><td>$300</td><td>$24</td><td>$324</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>At <strong>500+</strong> queries per day, the next optimization frontier is no longer free-tier arbitrage; it is model efficiency. That is the point where response caching, smaller fine-tuned models, or a hybrid router architecture begin to matter more than hosting choices.</p>
+      <div class="callout"><strong>Scaling note:</strong> below moderate traffic, infrastructure discipline dominates. Beyond that, model routing and caching dominate.</div>
+    </section>
+
+    <section class="section-card" id="recommendations">
+      <div class="kicker">6. Recommendations for Other Projects</div>
+      <h2>Transferable lessons for low-budget production AI</h2>
+      <ul>
+        <li><strong>Start with free tiers.</strong> Map each major subsystem to a free option before writing code.</li>
+        <li><strong>Use batch APIs for offline work.</strong> Synthetic data generation, extraction, and evaluation are ideal batch workloads and can cut LLM cost by 50%.</li>
+        <li><strong>Embed selectively.</strong> Not every document deserves a vector. Prioritize the material users will actually ask about.</li>
+        <li><strong>Prefer QLoRA over full fine-tuning</strong> for 8B-scale models unless there is a clear reason to pay for larger hardware.</li>
+        <li><strong>Use SSE streaming.</strong> It is one of the rare UX improvements that materially improves responsiveness without increasing cost.</li>
+        <li><strong>Choose single-file HTML</strong> when the frontend is small enough to justify it, especially for demos and research artifacts.</li>
+        <li><strong>Deploy on a budget VPS</strong> for portfolio or demo usage instead of defaulting to premium cloud platforms.</li>
+        <li><strong>Practice context-window discipline.</strong> Send only the evidence needed for synthesis, not the maximum the model can accept.</li>
+      </ul>
+      <pre class="code-block">Cheap AI stack checklist:
+1. Free storage tier
+2. Discounted offline inference
+3. Selective embedding
+4. Quantized tuning
+5. Small VPS deployment
+6. Streaming UX
+7. Tight prompt/context budget</pre>
+    </section>
+
+    <section class="section-card" id="conclusion">
+      <div class="kicker">7. Conclusion</div>
+      <h2>Production AI can be affordable when architecture and budget are co-designed</h2>
+      <p>The year-one cost profile is straightforward: <strong>$240</strong> in build cost plus about <strong>$72</strong> in annual infrastructure, for a total first-year ownership cost of roughly <strong>$312</strong>. Comparable commercial solutions often land in the <strong>$600 to $6,000 per year</strong> range before customization or usage growth is considered.</p>
+      <p>EDA Copilot demonstrates that a domain-specific GraphRAG system can be built cheaply without being flimsy. The core methods—free-tier alignment, discounted batch inference, selective embedding, QLoRA adaptation, small-footprint deployment, and streaming-first UX—transfer well to other technical domains. The stack is reproducible, the economics are transparent, and the design is well within reach for independent builders.</p>
+      <div class="callout"><strong>Final takeaway:</strong> open-source components and disciplined cost engineering make production-grade, domain-specific AI systems accessible far below the price points implied by commercial platforms.</div>
+    </section>
+
+    <div class="footer">EDA Copilot cost optimization paper · Self-contained HTML reference</div>
+  </main>
+</div>
+<script>
+const navLinks=[...document.querySelectorAll('.nav-link')];
+const sections=navLinks.map(link=>document.querySelector(link.getAttribute('href'))).filter(Boolean);
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      navLinks.forEach(link=>link.classList.toggle('active',link.getAttribute('href')==='#'+entry.target.id));
+    }
+  });
+},{rootMargin:'-30% 0px -55% 0px',threshold:0.1});
+sections.forEach(section=>observer.observe(section));
+</script>
+</body>
+</html>
