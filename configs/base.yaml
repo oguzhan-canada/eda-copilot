@@ -70,7 +70,7 @@ graph_store:
 
 # ── Inference ─────────────────────────────────────────────────────────────────
 inference:
-  base_model: meta-llama/Meta-Llama-3-8B-Instruct
+  base_model: mistralai/Mistral-7B-Instruct-v0.3
   lora_r: 16
   lora_alpha: 32
   load_in_4bit: true

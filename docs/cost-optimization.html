@@ -391,7 +391,7 @@ td.muted{color:var(--dim)}
       <div class="callout"><strong>Selective embedding beats blanket embedding:</strong> vectors are only valuable when the chunk is likely to be retrieved. Excluding low-value logs and deferring code preserved both budget and retrieval precision.</div>
 
       <h3>3.5 QLoRA Instead of Full Fine-Tuning</h3>
-      <p>Model adaptation used <strong>QLoRA with 4-bit quantization</strong> rather than full fine-tuning. A full fine-tune of Llama-3-8B would require roughly <strong>80GB VRAM</strong>, pushing the project toward A100-class hardware at around <strong>$3/hour</strong>. QLoRA fit on a <strong>16GB T4</strong> using a <code>g4dn.xlarge</code> spot instance priced at <strong>$0.526/hour</strong>.</p>
+      <p>Model adaptation used <strong>QLoRA with 4-bit quantization</strong> rather than full fine-tuning. A full fine-tune of Mistral-7B would require roughly <strong>80GB VRAM</strong>, pushing the project toward A100-class hardware at around <strong>$3/hour</strong>. QLoRA fit on a <strong>16GB T4</strong> using a <code>g4dn.xlarge</code> spot instance priced at <strong>$0.526/hour</strong>.</p>
       <p>Training ran for <strong>17 hours 16 minutes</strong>, for a total GPU cost of <strong>$9.09</strong>. That compares favorably with an estimated <strong>$50–100</strong> for a more traditional full fine-tuning path. More importantly, the lower-cost method still delivered meaningful quality: <strong>0.431 answer quality</strong> versus <strong>0.022</strong> for a direct standalone LLM baseline.</p>
 
       <h3>3.6 Budget VPS Deployment</h3>

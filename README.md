@@ -39,7 +39,7 @@ An end-to-end system for building knowledge-driven EDA assistants that reason ov
 - **4-tier corpus pipeline** — structured code, PDK artifacts, tool docs, synthetic Q&A
 - **Version-aware knowledge graph** — Neo4j ontology with 10 node types, 10 relation types, provenance tracking
 - **Hybrid GraphRAG retrieval** — dense + BM25 + graph subgraph expansion for multi-hop reasoning
-- **QLoRA domain adaptation** — Llama-3-8B fine-tuned for Verilog/SDC generation
+- **QLoRA domain adaptation** — Mistral-7B fine-tuned for Verilog/SDC generation
 - **EDABench** — 900-sample benchmark with 6 verified seed samples from real ORFS experiments
 
 ## Repository Structure
