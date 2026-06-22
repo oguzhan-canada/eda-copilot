@@ -269,7 +269,7 @@ td.muted{color:var(--dim)}
       <h1>Cost Optimization in Production AI Systems: Building a Domain-Specific GraphRAG for $240</h1>
       <p class="subtitle">Techniques and Results from the EDA Copilot Project</p>
       <p class="author">Oguzhan Tekin · Machine Learning and AI Researcher · Toronto, Canada</p>
-      <p>This paper documents the concrete techniques that let EDA Copilot ship a live, domain-specific GraphRAG system at a total build cost of <strong>$240</strong>, compared with an original <strong>$2,685</strong> budget. The central result is practical: disciplined systems design made it possible to operate the system for roughly <strong>one cent per question</strong> while still outperforming a standalone large language model by <strong>21.9×</strong> on EDABench.</p>
+      <p>This paper documents the concrete techniques that let EDA Copilot ship a live, domain-specific GraphRAG system at a total build cost of <strong>$240</strong>, compared with an original <strong>$2,685</strong> budget. The central result is practical: disciplined systems design made it possible to operate the system for roughly <strong>one cent per question</strong> while still outperforming a standalone large language model by <strong>6.7×</strong> on EDABench.</p>
       <div class="hero-actions">
         <a class="pill" href="index.html">Main dashboard</a>
         <a class="pill" href="architecture-guide.html">Architecture guide</a>
@@ -392,7 +392,7 @@ td.muted{color:var(--dim)}
 
       <h3>3.5 QLoRA Instead of Full Fine-Tuning</h3>
       <p>Model adaptation used <strong>QLoRA with 4-bit quantization</strong> rather than full fine-tuning. A full fine-tune of Mistral-7B would require roughly <strong>80GB VRAM</strong>, pushing the project toward A100-class hardware at around <strong>$3/hour</strong>. QLoRA fit on a <strong>16GB T4</strong> using a <code>g4dn.xlarge</code> spot instance priced at <strong>$0.526/hour</strong>.</p>
-      <p>Training ran for <strong>17 hours 16 minutes</strong>, for a total GPU cost of <strong>$9.09</strong>. That compares favorably with an estimated <strong>$50–100</strong> for a more traditional full fine-tuning path. More importantly, the lower-cost method still delivered meaningful quality: <strong>0.431 answer quality</strong> versus <strong>0.022</strong> for a direct standalone LLM baseline.</p>
+      <p>Training ran for <strong>17 hours 16 minutes</strong>, for a total GPU cost of <strong>$9.09</strong>. That compares favorably with an estimated <strong>$50–100</strong> for a more traditional full fine-tuning path. More importantly, the lower-cost method still delivered meaningful quality: <strong>0.431 answer quality</strong> versus <strong>0.072</strong> for a direct standalone LLM baseline.</p>
 
       <h3>3.6 Budget VPS Deployment</h3>
       <p>Deployment was intentionally boring and cheap. A <strong>RackNerd VPS at $3/month</strong> with <strong>2GB RAM</strong> ran the API stack: FastAPI, uvicorn, nginx, and systemd. The same workload would cost roughly <strong>$15/month</strong> on AWS EC2 t3.small or <strong>$6/month</strong> on DigitalOcean.</p>
@@ -437,7 +437,7 @@ event: done
             <tr><td>Per-query cost</td><td>~$0.01</td></tr>
             <tr><td>Monthly infrastructure</td><td>$3</td></tr>
             <tr><td>Answer quality (EDABench)</td><td>0.482</td></tr>
-            <tr><td>Improvement vs standalone LLM</td><td>21.9×</td></tr>
+            <tr><td>Improvement vs standalone LLM</td><td>6.7×</td></tr>
             <tr><td>Graph hit rate</td><td>67.5%</td></tr>
             <tr><td>Knowledge graph nodes</td><td>18,035</td></tr>
             <tr><td>Vector store objects</td><td>8,958</td></tr>
@@ -453,11 +453,11 @@ event: done
         </div>
         <div class="metric-card">
           <div class="metric-title">Improvement over bare LLM</div>
-          <div class="metric-value">21.9×</div>
+          <div class="metric-value">6.7×</div>
           <div class="metric-sub">The retrieval and graph layers changed quality far more than they changed cost.</div>
         </div>
       </div>
-      <div class="callout"><strong>The main result:</strong> the full GraphRAG system outperformed a standalone LLM by <strong>21.9×</strong> while operating at about <strong>$0.01 per query</strong>. The evidence suggests that disciplined retrieval architecture can improve quality and reduce total ownership cost simultaneously.</div>
+      <div class="callout"><strong>The main result:</strong> the full GraphRAG system outperformed a standalone LLM by <strong>6.7×</strong> while operating at about <strong>$0.01 per query</strong>. The evidence suggests that disciplined retrieval architecture can improve quality and reduce total ownership cost simultaneously.</div>
     </section>
 
     <section class="section-card" id="scaling">

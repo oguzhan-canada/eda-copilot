@@ -621,7 +621,7 @@ results = <span class="t-fn">evaluate_on_edabench</span>(merged_model)</code></p
               <tr><th>Key result</th><th>Value</th><th>Interpretation</th></tr>
             </thead>
             <tbody>
-              <tr><td>Quality improvement over standalone LLM</td><td>21.9×</td><td>Hybrid retrieval plus graph grounding materially improves useful answer quality.</td></tr>
+              <tr><td>Quality improvement over standalone LLM</td><td>6.7×</td><td>Hybrid retrieval plus graph grounding materially improves useful answer quality.</td></tr>
               <tr><td>Graph hit rate</td><td>67.5%</td><td>Most benchmark questions benefited from graph-retrieved evidence.</td></tr>
               <tr><td>Mean answer quality</td><td>0.482</td><td>The stack achieved consistent mid-to-high usefulness across mixed categories.</td></tr>
             </tbody>
@@ -709,7 +709,7 @@ results = <span class="t-fn">evaluate_on_edabench</span>(merged_model)</code></p
 
         <div class="grid-3">
           <div class="card"><h3>Version-aware graph edges</h3><p>Version-aware edges were essential for error diagnosis. They let the system connect symptoms, fixes, and behavioral changes to the correct release context rather than blending incompatible evidence.</p></div>
-          <div class="card"><h3>Hybrid retrieval wins</h3><p>Hybrid retrieval outperformed pure vector search by 21.9× in answer quality. The graph made retrieval smarter, while dense and sparse channels preserved broad recall.</p></div>
+          <div class="card"><h3>Hybrid retrieval wins</h3><p>Hybrid retrieval outperformed pure vector search by 139% in answer quality (0.482 vs 0.202). The graph made retrieval smarter, while dense and sparse channels preserved broad recall.</p></div>
           <div class="card"><h3>Streaming changes perception</h3><p>SSE streaming improved perceived latency dramatically, with users seeing the first words in roughly 2–3 seconds instead of waiting around 15 seconds for a full response block.</p></div>
           <div class="card"><h3>Secret scanning matters</h3><p>Pre-commit secret scanning is worth adopting early. It lowers the chance that operational credentials leak during rapid iteration, especially when code and deployment config evolve together.</p></div>
           <div class="card"><h3>Single-file frontend</h3><p>A single-file HTML dashboard simplified deployment, review, and archiving. It also made the project easy to host on static infrastructure with almost no frontend operational overhead.</p></div>

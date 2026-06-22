@@ -1085,7 +1085,7 @@ Evaluated full system against EDABench (120 items, 5 categories):
 |---|---|
 | Mean answer quality | 0.482 |
 | Graph hit rate | 67.5% |
-| Improvement vs standalone LLM | 21.9× |
+| Improvement vs standalone LLM | 6.7× |
 
 ---
 

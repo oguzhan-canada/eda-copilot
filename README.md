@@ -8,7 +8,7 @@ Oguzhan Tekin · Machine Learning and AI Researcher · Toronto, Canada
 
 > 🔗 This project is a case study for the [AI Inference Cost Optimizer](https://github.com/oguzhan-canada/ai-inference-cost-optimizer) — a FinOps decision assistant for AI inference routing.
 
-Chip designers spend enormous amounts of time searching through tool logs, version changelogs, and community forums to diagnose failures they have already seen before. This project builds a smarter assistant — one that doesn't just search text, but actually understands the relationships between errors, fixes, tool versions, and design rules. By combining a Neo4j knowledge graph with vector search and a large language model, the system answers chip design questions with 21.9× higher quality than a standalone LLM, while citing exactly which documents and graph relationships informed each answer — all built for $240 on open-source tools.
+Chip designers spend enormous amounts of time searching through tool logs, version changelogs, and community forums to diagnose failures they have already seen before. This project builds a smarter assistant — one that doesn't just search text, but actually understands the relationships between errors, fixes, tool versions, and design rules. By combining a Neo4j knowledge graph with vector search and a large language model, the system answers chip design questions with 6.7× higher quality than a standalone LLM, while citing exactly which documents and graph relationships informed each answer — all built for $240 on open-source tools.
 
 ---
 
@@ -117,7 +117,7 @@ The system is deployed and publicly accessible:
 
 | Metric | Value |
 |---|---|
-| Answer quality vs standalone LLM | **21.9× improvement** |
+| Answer quality vs standalone LLM | **6.7× improvement** |
 | Mean answer quality (EDABench) | 0.482 |
 | Graph hit rate | 67.5% |
 | Per-query cost | ~$0.01 |

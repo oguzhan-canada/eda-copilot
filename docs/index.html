@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EDA Copilot — LLM-Powered Knowledge Graph for Electronic Design Automation</title>
-<meta name="description" content="A GraphRAG copilot for chip design engineers. Knowledge graph + vector retrieval + LoRA fine-tuning. Built for $240. 21.9× better than bare LLM on EDABench. By Oguzhan Tekin, Toronto.">
+<meta name="description" content="A GraphRAG copilot for chip design engineers. Knowledge graph + vector retrieval + LoRA fine-tuning. Built for $240. 6.7× better than bare LLM on EDABench. By Oguzhan Tekin, Toronto.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root {
@@ -273,11 +273,11 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
       <h2>Electronic Design Automation (EDA) Copilot</h2>
       <div class="intro-quote">
         <p>Chip design is one of the most complex engineering disciplines in the world — and one of the most knowledge-intensive. Engineers spend enormous time hunting through tool logs, version changelogs, and community forums to diagnose failures they have seen before. I built this project to ask: can we give those engineers a smarter assistant — one that doesn't just search text, but actually understands the <em>relationships</em> between errors, fixes, tool versions, and design rules?</p>
-        <p style="margin-top:14px">The answer is yes. This system combines a knowledge graph (a structured map of EDA concepts and their connections) with AI language models trained on real chip design data. On a standardized 120-question benchmark I created for this domain, the full system answers questions <strong>21.9× better</strong> than a bare AI model — and <strong>139% better</strong> than simple document search alone. It was built in 16 weeks for <strong>$240</strong>, roughly 10% of the original budget estimate. As an AI cost optimizer, delivering production-grade research infrastructure at a fraction of projected cost is as important a result as the accuracy numbers.</p>
+        <p style="margin-top:14px">The answer is yes. This system combines a knowledge graph (a structured map of EDA concepts and their connections) with AI language models trained on real chip design data. On a standardized 120-question benchmark I created for this domain, the full system answers questions <strong>6.7× better</strong> than a bare AI model — and <strong>139% better</strong> than simple document search alone. It was built in 16 weeks for <strong>$240</strong>, roughly 10% of the original budget estimate. As an AI cost optimizer, delivering production-grade research infrastructure at a fraction of projected cost is as important a result as the accuracy numbers.</p>
       </div>
 
       <div class="stat-row">
-        <div class="stat-card"><div class="num">21.9×</div><div class="lbl">Answer quality vs bare LLM</div></div>
+        <div class="stat-card"><div class="num">6.7×</div><div class="lbl">Answer quality vs bare LLM</div></div>
         <div class="stat-card"><div class="num">139%</div><div class="lbl">Over vector-only search</div></div>
         <div class="stat-card"><div class="num">67.5%</div><div class="lbl">Graph hit rate</div></div>
         <div class="stat-card"><div class="num" style="color:var(--gold)">120</div><div class="lbl">EDABench items, 0 contaminated</div></div>
@@ -309,14 +309,14 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
       <div class="section" style="padding-top:8px">
         <h2>What We Found</h2>
         <div class="intro-quote" style="margin-bottom:20px">
-          <p>The results exceeded expectations — especially on the question of cost. The system answers EDA questions 21.9 times more accurately than a standalone AI model, and nearly 140% better than simple document search. But the finding that stands out most as an AI cost optimization project: the entire system was built for $240, about one dollar in every ten of the original estimate. That wasn't luck — it came from deliberate engineering choices: using batch pricing discounts, building a three-tier extraction pipeline where 85% of work is free, and treating every cloud instance like a taxi meter. The six findings below tell the full story.</p>
+          <p>The results exceeded expectations — especially on the question of cost. The system answers EDA questions 6.7 times more accurately than a standalone AI model, and nearly 140% better than simple document search. But the finding that stands out most as an AI cost optimization project: the entire system was built for $240, about one dollar in every ten of the original estimate. That wasn't luck — it came from deliberate engineering choices: using batch pricing discounts, building a three-tier extraction pipeline where 85% of work is free, and treating every cloud instance like a taxi meter. The six findings below tell the full story.</p>
           <p style="margin-top:14px">In simpler terms: we tested four different ways to answer chip design questions — asking a plain AI model with no help, giving it a basic text search, giving it a fine-tuned model trained on EDA data, and giving it our full system with the knowledge graph. The full system won by a wide margin on almost every question type. The knowledge graph was especially important for questions that required understanding which version of a tool introduced a bug or how different components interact — things that plain text search simply can't piece together. Meanwhile, the fine-tuned model excelled on patterns it had seen in training, showing that the two approaches complement each other rather than compete. The six cards below summarize the key numbers.</p>
         </div>
         <div class="finding-grid" style="margin-top:20px">
           <div class="finding-card">
             <div class="finding-kicker">Headline Result</div>
-            <div class="finding-metric">21.9×</div>
-            <p>The full GraphRAG system scores 0.482 answer quality vs 0.022 for a bare Claude model on EDABench — confirming that retrieval-augmented generation with a knowledge graph is essential for EDA domain tasks.</p>
+            <div class="finding-metric">6.7×</div>
+            <p>The full GraphRAG system scores 0.482 answer quality vs 0.072 for a bare Claude model on EDABench — confirming that retrieval-augmented generation with a knowledge graph is essential for EDA domain tasks.</p>
           </div>
           <div class="finding-card">
             <div class="finding-kicker">Knowledge Graph Lift</div>
@@ -471,7 +471,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
             </tr>
             <tr>
               <td>Direct LLM</td>
-              <td class="num-cell">0.022</td>
+              <td class="num-cell">0.072</td>
               <td class="num-cell">0.207</td>
               <td class="num-cell">0.071</td>
               <td class="num-cell">0.048</td>
@@ -486,7 +486,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
 
       <div class="intro-quote" style="margin-top:18px">
         <p>This table is the core evidence of the project. We tested every one of the 120 benchmark questions against four different systems and scored each answer on four dimensions: is it factually correct, is it complete, is it actionable (can an engineer use it to fix the problem), and is it specific enough to be useful? The overall "Answer Quality" score is the minimum of these four — meaning one weak dimension drags the whole score down. This is deliberately strict: a response that is factually perfect but vague scores low, because vague answers don't help engineers.</p>
-        <p style="margin-top:14px">The headline finding is clear: the full GraphRAG system (knowledge graph + vector search + reranker + Claude) scores 0.482, which is 21.9 times higher than a bare AI model at 0.022. But the more nuanced story is in the rows between. The fine-tuned LoRA model scores 0.431 without any retrieval at all — it learned EDA patterns from training data — but it can't access the knowledge graph, so its graph hit rate is 0%. Vector-only search scores just 0.202, proving that plain document retrieval isn't enough for this domain. The knowledge graph provides the structured context that makes the difference.</p>
+        <p style="margin-top:14px">The headline finding is clear: the full GraphRAG system (knowledge graph + vector search + reranker + Claude) scores 0.482, which is 6.7 times higher than a bare AI model at 0.072. But the more nuanced story is in the rows between. The fine-tuned LoRA model scores 0.431 without any retrieval at all — it learned EDA patterns from training data — but it can't access the knowledge graph, so its graph hit rate is 0%. Vector-only search scores just 0.202, proving that plain document retrieval isn't enough for this domain. The knowledge graph provides the structured context that makes the difference.</p>
       </div>
 
       <div class="results-grid" style="margin-top:16px">
@@ -674,10 +674,6 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
       <h2>Known Limitations &amp; Open Items</h2>
       <div class="miss-grid">
         <div class="miss-card">
-          <h4>Direct LLM table row</h4>
-          <p>Paper Table 1 row for Direct LLM contains stale numbers from a pre-fix eval run. Corrected values: AQ=0.022, Factual=0.207. Fix pending in paper revision.</p>
-        </div>
-        <div class="miss-card">
           <h4>DRC entity matching</h4>
           <p>Entity extractor does not match PDK rule IDs (e.g. METAL1.S.1). DRC Rule Lookup achieves 0% graph hit rate despite 0.422 answer quality. Regex pattern extension is the fix.</p>
         </div>
@@ -695,7 +691,7 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:24px 0
         </div>
       </div>
       <div class="intro-quote" style="margin-top:20px">
-        <p>No research system ships without gaps, and being transparent about them is as important as reporting what works. Four areas need attention in upcoming work. First, the entity extractor currently cannot match PDK design rule IDs (like METAL1.S.1), which is why DRC Rule Lookup shows 0% graph hit rate despite reasonable answer quality — a straightforward regex pattern extension will fix this. Second, only 33 of the 120 EDABench items have full KG-grounded expected nodes annotated; the remaining 87 are scored on answer quality alone, which limits how precisely we can measure retrieval accuracy. Third, the swerv_wrapper design was excluded from the ORFS parameter sweep because it requires a 64 GB instance, meaning 3 of the 12 planned experimental runs were deferred. Finally, the Direct LLM baseline row in the paper contains numbers from a pre-fix evaluation run that need to be updated to the corrected values (AQ=0.022, Factual=0.207) before final submission. None of these limitations affect the core findings — the 21.9× improvement and 67.5% graph hit rate are measured on the components that work — but addressing them will strengthen both the benchmark and the system for future use.</p>
+        <p>No research system ships without gaps, and being transparent about them is as important as reporting what works. Four areas need attention in upcoming work. First, the entity extractor currently cannot match PDK design rule IDs (like METAL1.S.1), which is why DRC Rule Lookup shows 0% graph hit rate despite reasonable answer quality — a straightforward regex pattern extension will fix this. Second, only 33 of the 120 EDABench items have full KG-grounded expected nodes annotated; the remaining 87 are scored on answer quality alone, which limits how precisely we can measure retrieval accuracy. Third, the swerv_wrapper design was excluded from the ORFS parameter sweep because it requires a 64 GB instance, meaning 3 of the 12 planned experimental runs were deferred. Fourth, the ASAP7 7nm academic PDK rules are not yet in the corpus, so queries about ASAP7 design rules return low-confidence answers until that documentation is added to the ingestion pipeline. None of these limitations affect the core findings — the 6.7× improvement and 67.5% graph hit rate are measured on the components that work — but addressing them will strengthen both the benchmark and the system for future use.</p>
       </div>
     </div>
 
