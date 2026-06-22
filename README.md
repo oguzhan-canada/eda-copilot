@@ -40,7 +40,7 @@ An end-to-end system for building knowledge-driven EDA assistants that reason ov
 - **Version-aware knowledge graph** — Neo4j ontology with 10 node types, 10 relation types, provenance tracking
 - **Hybrid GraphRAG retrieval** — dense + BM25 + graph subgraph expansion for multi-hop reasoning
 - **QLoRA domain adaptation** — Mistral-7B fine-tuned for Verilog/SDC generation
-- **EDABench** — 900-sample benchmark with 6 verified seed samples from real ORFS experiments
+- **EDABench** — 120-item benchmark with 6 verified seed samples from real ORFS experiments (full release targets 900)
 
 ## Repository Structure
 
